@@ -3,7 +3,6 @@ package com.gg.turnlook.Backend.Service;
 
 
 import com.gg.turnlook.Backend.DTO.Servicio.ServicioCrearDTO;
-import com.gg.turnlook.Backend.DTO.Servicio.ServicioMiniDTO;
 import com.gg.turnlook.Backend.DTO.Servicio.ServicioModificarDTO;
 import com.gg.turnlook.Backend.DTO.Servicio.ServicioResponseDTO;
 import com.gg.turnlook.Backend.Excepciones.BadRequestException;
@@ -116,16 +115,12 @@ public class ServicioService {
     }
 
 
-    public List<ServicioMiniDTO> listarServiciosSucursal(Integer sucursalId){
+    public List<ServicioResponseDTO> listarServiciosSucursal(Integer sucursalId){
 
         sucService.listarSucursalPorId(sucursalId);  //validacion
 
         return servRepo.findBySucursalId(sucursalId).stream()
-                .map(s -> new ServicioMiniDTO(s.getId(), s.getNombre(),
-                        s.getDuracion(), s.getFotoPerfil().getFotoValida(),
-                        reseniaService.getPuntuacionPromedioServicio(s.getId()),
-                        reseniaService.getPuntuacionesTotalesServicio(s.getId()))
-                )
+                .map(this::mapearServicio)
                 .toList();
     }
 
@@ -148,7 +143,7 @@ public class ServicioService {
 
         dto.setPrecio(s.getPrecio());
 
-        dto.setFotoPerfil(s.getFotoPerfil().getFotoValida());
+        dto.setFotoPerfil(s.getFotoPerfil() != null ? s.getFotoPerfil().getFotoValida() : null);
 
         dto.setPuntuacion(reseniaService.getPuntuacionPromedioServicio(s.getId()));
 
