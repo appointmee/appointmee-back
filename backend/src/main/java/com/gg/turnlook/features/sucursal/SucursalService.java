@@ -402,7 +402,8 @@ public class SucursalService {
 
         Map<Integer, ResumenPuntuacion> puntuaciones =
                 reseniaService.getPuntuacionesEmpleados(
-                        empleados.stream().map(Usuario::getId).toList());
+                        empleados.stream().map(Usuario::getId).toList(),
+                        suc.getId());
 
         return empleados.stream().
                 map(emp -> new EmpleadoResponseDTO(

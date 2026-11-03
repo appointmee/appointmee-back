@@ -34,9 +34,9 @@ public class ReseniaService {
     }
 
 
-    public Integer getPuntuacionPromedioEmpleado(Integer empleadoId) {
+    public Integer getPuntuacionPromedioEmpleado(Integer empleadoId, Integer sucursalId) {
 
-        Double promedio = reseniaRepo.promedioPuntuacionesEmpleado(empleadoId);
+        Double promedio = reseniaRepo.promedioPuntuacionesEmpleado(empleadoId, sucursalId);
 
         return promedio != null ? (int) Math.round(promedio) : null;
     }
@@ -58,9 +58,9 @@ public class ReseniaService {
     }
 
 
-    public Long getPuntuacionesTotalesEmpleado(Integer empleadoId) {
+    public Long getPuntuacionesTotalesEmpleado(Integer empleadoId, Integer sucursalId) {
 
-        return reseniaRepo.puntuacionesTotalesEmpleado(empleadoId);
+        return reseniaRepo.puntuacionesTotalesEmpleado(empleadoId, sucursalId);
     }
 
 
@@ -110,11 +110,15 @@ public class ReseniaService {
 
 
     /// Igual que getPuntuacionesSucursales pero para los empleados de una lista.
+    /// La puntuacion de cada empleado se calcula solo con sus turnos de la
+    /// sucursal indicada, no con todos sus turnos en otras sucursales.
 
     public Map<Integer, ResumenPuntuacion> getPuntuacionesEmpleados(
-            List<Integer> empleadoIds) {
+            List<Integer> empleadoIds, Integer sucursalId) {
 
-        return aMapa(resumenPuntuacionesPorEmpleado(empleadoIds), empleadoIds);
+        return aMapa(
+                resumenPuntuacionesPorEmpleado(empleadoIds, sucursalId),
+                empleadoIds);
     }
 
 
@@ -126,11 +130,12 @@ public class ReseniaService {
     }
 
 
-    private List<Object[]> resumenPuntuacionesPorEmpleado(List<Integer> ids) {
+    private List<Object[]> resumenPuntuacionesPorEmpleado(
+            List<Integer> ids, Integer sucursalId) {
 
         if (ids == null || ids.isEmpty()) return List.of();
 
-        return reseniaRepo.resumenPuntuacionesPorEmpleado(ids);
+        return reseniaRepo.resumenPuntuacionesPorEmpleado(ids, sucursalId);
     }
 
 
