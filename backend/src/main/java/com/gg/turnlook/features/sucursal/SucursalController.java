@@ -197,7 +197,6 @@ public class SucursalController {
     }
 
 
-    @PreAuthorize("hasRole('CLIENTE')")
     @GetMapping("/{sucursalId}/elegir-empleado")
     public ResponseEntity<?> elegirEmpleado(@PathVariable("sucursalId") Integer sucursalId) {
 
