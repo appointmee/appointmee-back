@@ -4,6 +4,7 @@ import com.gg.turnlook.features.resenia.dto.ReseniaCrearDTO;
 import com.gg.turnlook.features.resenia.dto.ReseniaResponseDTO;
 import com.gg.turnlook.features.turno.Turno;
 import java.util.List;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 
 import java.util.Map;
@@ -162,14 +163,22 @@ public class ReseniaService {
     }
 
 
+    // Limite del historial publico de resenias. Se mantiene el retorno List
+    // para no cambiar el contrato de la API.
+    private static final int LIMITE_RESENIAS_SUCURSAL = 200;
+
+
     public List<ReseniaResponseDTO> getReseniasPorSucursal(Integer sucursalId) {
 
-        return reseniaRepo.findBySucursalId(sucursalId).stream()
-                .map(r -> new ReseniaResponseDTO(
-                        r.getPuntuacion(),
-                        r.getComentario(),
-                        r.getFechaResenia()))
-                .toList();
+        // Consulta anterior a la optimización. Reemplazada por findReseniasPorSucursal.
+        // return reseniaRepo.findBySucursalId(sucursalId).stream()
+        //         .map(r -> new ReseniaResponseDTO(
+        //                 r.getPuntuacion(),
+        //                 r.getComentario(),
+        //                 r.getFechaResenia()))
+        //         .toList();
+        return reseniaRepo.findReseniasPorSucursal(sucursalId,
+                PageRequest.of(0, LIMITE_RESENIAS_SUCURSAL));
     }
 
 

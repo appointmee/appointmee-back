@@ -151,7 +151,11 @@ public class ServicioService {
 
 
     public ServicioResponseDTO verServicioPorId(Integer idServicio) {
-        return mapearServicio(listarServicioPorId(idServicio));
+        // Consulta anterior a la optimización. Reemplazada por findByIdConDetalle.
+        // return mapearServicio(listarServicioPorId(idServicio));
+        Servicio servicio = servRepo.findByIdConDetalle(idServicio)
+                .orElseThrow(() -> new NotFoundException("Servicio no encontrado"));
+        return mapearServicio(servicio);
     }
 
 
@@ -170,9 +174,13 @@ public class ServicioService {
 
         dto.setFotoPerfil(s.getFotoPerfil().getFotoValida());
 
-        dto.setPuntuacion(reseniaService.getPuntuacionPromedioServicio(s.getId()));
-
-        dto.setCantidadPuntuaciones(reseniaService.getPuntuacionesTotalesServicio(s.getId()));
+        // Consulta anterior a la optimización. Reemplazada por getPuntuacionesServicios.
+        // dto.setPuntuacion(reseniaService.getPuntuacionPromedioServicio(s.getId()));
+        // dto.setCantidadPuntuaciones(reseniaService.getPuntuacionesTotalesServicio(s.getId()));
+        Map<Integer, ResumenPuntuacion> puntuaciones =
+                reseniaService.getPuntuacionesServicios(List.of(s.getId()));
+        dto.setPuntuacion(puntuacionDe(puntuaciones.get(s.getId())));
+        dto.setCantidadPuntuaciones(cantidadDe(puntuaciones.get(s.getId())));
 
         dto.setNombreSucursal(s.getSucursal().getNombre());
 

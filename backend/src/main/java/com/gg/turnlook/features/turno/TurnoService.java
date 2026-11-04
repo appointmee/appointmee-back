@@ -16,6 +16,7 @@ import com.gg.turnlook.features.sucursal.SucursalService;
 import com.gg.turnlook.features.turno.dto.DisponibilidadDTO;
 import com.gg.turnlook.features.turno.dto.TurnoClienteResponseDTO;
 import com.gg.turnlook.features.turno.dto.TurnoCrearDTO;
+import com.gg.turnlook.features.turno.dto.TurnoDisponibilidadDTO;
 import com.gg.turnlook.features.turno.dto.TurnoMiniDTO;
 import com.gg.turnlook.features.turno.dto.TurnoResponseDTO;
 import com.gg.turnlook.features.usuario.Usuario;
@@ -28,6 +29,7 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.*;
 import java.util.stream.Collectors;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -37,6 +39,12 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class TurnoService {
+
+
+    // Limites de los listados. Se mantiene la respuesta como List para no
+    // cambiar el contrato de la API, pero se evita traer historiales completos.
+    private static final int LIMITE_TURNOS_CLIENTE = 200;
+    private static final int LIMITE_TURNOS_SUCURSAL = 500;
 
 
     private final TurnoRepository turnoRepo;
@@ -64,7 +72,7 @@ public class TurnoService {
             throw new BadRequestException("La fecha del turno no puede haber pasado");
         }
 
-        Usuario empleado = usuarioService.listarUsuarioPorId(turno.getEmpleadoId());
+        Usuario empleado = usuarioService.listarUsuarioPorIdConRoles(turno.getEmpleadoId());
 
         if (empleado.getEmail().equals(clienteEmail)) {
             throw new ConflictException("No podes reservar un turno siendo vos el empleado");
@@ -87,7 +95,7 @@ public class TurnoService {
         }
 
         LocalDate dia = turno.getFechaHora().toLocalDate();
-        List<Turno> turnosDia = turnoRepo.findByEmpleadoAndFechaHoraBetweenAndEstadoNot(
+        List<TurnoDisponibilidadDTO> turnosDia = turnoRepo.findDisponibilidadPorEmpleado(
                 empleado, dia.atStartOfDay(), dia.atTime(LocalTime.MAX), EstadoTurno.CANCELADO);
 
         if (!estaDisponible(turno.getFechaHora(), servicio.getDuracion(), turnosDia)) {
@@ -112,9 +120,9 @@ public class TurnoService {
 
         LocalDateTime iSemana = LocalDate.now().atStartOfDay();
         LocalDateTime fSemana = LocalDate.now().plusDays(6).atTime(LocalTime.MAX);
-        List<Turno> turnos = turnoRepo.findByEmpleadoAndFechaHoraBetweenAndEstadoNot(
+        List<TurnoDisponibilidadDTO> turnos = turnoRepo.findDisponibilidadPorEmpleado(
                 empleado, iSemana, fSemana, EstadoTurno.CANCELADO);
-        Map<LocalDate, List<Turno>> turnosPorDia = turnos.stream()
+        Map<LocalDate, List<TurnoDisponibilidadDTO>> turnosPorDia = turnos.stream()
                 .collect(Collectors.groupingBy(t -> t.getFechaHora().toLocalDate()));
 
         Map<LocalDate, List<LocalTime>> disponibilidad = new LinkedHashMap<>();
@@ -127,7 +135,8 @@ public class TurnoService {
                 continue;
             }
 
-            List<Turno> turnosDia = turnosPorDia.getOrDefault(dia, Collections.emptyList());
+            List<TurnoDisponibilidadDTO> turnosDia = turnosPorDia.getOrDefault(
+                    dia, Collections.emptyList());
             List<LocalTime> horariosDisponibles = new ArrayList<>();
             LocalTime apertura = sucursal.getHoraApertura();
 
@@ -156,13 +165,13 @@ public class TurnoService {
 
 
     private boolean estaDisponible(LocalDateTime inicioNuevo, Integer duracionServicio,
-                                   List<Turno> turnosDia) {
+                                   List<TurnoDisponibilidadDTO> turnosDia) {
 
         LocalDateTime finNuevo = inicioNuevo.plusMinutes(duracionServicio);
 
-        for (Turno t : turnosDia) {
+        for (TurnoDisponibilidadDTO t : turnosDia) {
             LocalDateTime inicioExistente = t.getFechaHora();
-            LocalDateTime finExistente = inicioExistente.plusMinutes(t.getServicio().getDuracion());
+            LocalDateTime finExistente = inicioExistente.plusMinutes(t.getDuracionServicio());
 
             if (inicioNuevo.isBefore(finExistente) && finNuevo.isAfter(inicioExistente)) {
                 return false;
@@ -225,14 +234,8 @@ public class TurnoService {
             throw new ForbiddenException("No tenes permisos");
         }
 
-        return turnoRepo.findByServicioSucursalIdAndEstado(sucursal.getId(),
-                        estadoTurno)
-                .stream()
-                .map(t -> new TurnoMiniDTO(t.getId(), t.getServicio().getNombre(),
-                        t.getFechaHora(), t.getEstado(),
-                        t.getResenia() != null ?
-                                t.getResenia().getPuntuacion() : null))
-                .toList();
+        return turnoRepo.findMiniByServicioSucursalIdAndEstado(sucursal.getId(),
+                estadoTurno, PageRequest.of(0, LIMITE_TURNOS_SUCURSAL));
     }
 
 
@@ -245,15 +248,9 @@ public class TurnoService {
             throw new ForbiddenException("No tenes permisos");
         }
 
-        return turnoRepo.findByEmpleadoEmailAndServicioSucursalIdAndEstado(
-                empleadoEmail, sucursal.getId(), estadoTurno)
-                .stream()
-                .map(t -> new TurnoMiniDTO(
-                        t.getId(), t.getServicio().getNombre(),
-                        t.getFechaHora(), t.getEstado(),
-                        t.getResenia() != null ?
-                                t.getResenia().getPuntuacion() : null))
-                .toList();
+        return turnoRepo.findMiniByEmpleadoEmailAndServicioSucursalIdAndEstado(
+                empleadoEmail, sucursal.getId(), estadoTurno,
+                PageRequest.of(0, LIMITE_TURNOS_SUCURSAL));
     }
 
 
@@ -299,13 +296,8 @@ public class TurnoService {
 
     public List<TurnoMiniDTO> listarTurnosPorCliente(String clienteEmail) {
 
-        return turnoRepo.findByClienteEmail(clienteEmail).stream()
-                .map(t -> new TurnoMiniDTO(
-                        t.getId(), t.getServicio().getNombre(),
-                        t.getFechaHora(), t.getEstado(),
-                        t.getResenia() != null ?
-                                t.getResenia().getPuntuacion() : null))
-                .toList();
+        return turnoRepo.findMiniByClienteEmail(clienteEmail,
+                PageRequest.of(0, LIMITE_TURNOS_CLIENTE));
     }
 
 
@@ -343,7 +335,7 @@ public class TurnoService {
 
 
     public Turno listarTurnoPorId(Integer id) {
-        return turnoRepo.findById(id)
+        return turnoRepo.findByIdConDetalles(id)
                 .orElseThrow(() -> new NotFoundException("No se encontró el turno"));
     }
 
@@ -375,18 +367,23 @@ public class TurnoService {
         turnoRepo.actualizarEstadoSiEs(turnoId,
                 List.of(EstadoTurno.PENDIENTE, EstadoTurno.PAGO_RECHAZADO),
                 EstadoTurno.CONFIRMADO);
-        return listarTurnoPorId(turnoId).getEstado();
+        return estadoDeTurno(turnoId);
     }
 
     @Transactional
     public EstadoTurno setearPagoRechazado(Integer turnoId) {
         turnoRepo.actualizarEstadoSiEs(turnoId,
                 List.of(EstadoTurno.PENDIENTE), EstadoTurno.PAGO_RECHAZADO);
-        return listarTurnoPorId(turnoId).getEstado();
+        return estadoDeTurno(turnoId);
     }
 
     public EstadoTurno verificarTurnoParaWebhook(Integer turnoId) {
-        return listarTurnoPorId(turnoId).getEstado();
+        return estadoDeTurno(turnoId);
+    }
+
+    private EstadoTurno estadoDeTurno(Integer turnoId) {
+        return turnoRepo.findEstadoById(turnoId)
+                .orElseThrow(() -> new NotFoundException("No se encontró el turno"));
     }
 
 }
