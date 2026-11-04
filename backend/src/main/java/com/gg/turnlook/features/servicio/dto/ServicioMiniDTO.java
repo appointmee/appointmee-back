@@ -20,7 +20,7 @@ public class ServicioMiniDTO {
     private String nombre;
     private Integer duracion;
     private String fotoPerfil;
-    private Integer puntuacion;
+    private Double puntuacion;
     private Long cantidadPuntuaciones;
 
 }

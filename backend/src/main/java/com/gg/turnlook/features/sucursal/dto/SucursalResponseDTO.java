@@ -38,7 +38,7 @@ public class SucursalResponseDTO {
     private LocalTime horaCierre;
 
      private List<String> diasApertura;
-     private Integer puntuacion;
+     private Double puntuacion;
      private Long cantidadPuntuaciones;
      private UsuarioMiniDTO empleador;
      private Set<UsuarioMiniDTO> empleados;

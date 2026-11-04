@@ -34,27 +34,27 @@ public class ReseniaService {
     }
 
 
-    public Integer getPuntuacionPromedioEmpleado(Integer empleadoId, Integer sucursalId) {
+    public Double getPuntuacionPromedioEmpleado(Integer empleadoId, Integer sucursalId) {
 
         Double promedio = reseniaRepo.promedioPuntuacionesEmpleado(empleadoId, sucursalId);
 
-        return promedio != null ? (int) Math.round(promedio) : null;
+        return promedio == null ? null : Math.round(promedio * 10.0) / 10.0;
     }
 
 
-    public Integer getPuntuacionPromedioSucursal(Integer sucursalId) {
+    public Double getPuntuacionPromedioSucursal(Integer sucursalId) {
 
         Double promedio = reseniaRepo.promedioPuntuacionesSucursal(sucursalId);
 
-        return promedio != null ? (int) Math.round(promedio) : null;
+        return promedio == null ? null : Math.round(promedio * 10.0) / 10.0;
     }
 
 
-    public Integer getPuntuacionPromedioServicio(Integer servicioId) {
+    public Double getPuntuacionPromedioServicio(Integer servicioId) {
 
         Double promedio = reseniaRepo.promedioPuntuacionesServicio(servicioId);
 
-        return promedio != null ? (int) Math.round(promedio) : null;
+        return promedio == null ? null : Math.round(promedio * 10.0) / 10.0;
     }
 
 
@@ -70,7 +70,7 @@ public class ReseniaService {
     }
 
 
-    /// Promedio (ya redondeado) y cantidad de resenias de varias sucursales,
+    /// Promedio con un decimal y cantidad de resenias de varias sucursales,
     /// en una sola query. Las sucursales sin resenias no aparecen en el mapa.
 
     public Map<Integer, ResumenPuntuacion> getPuntuacionesSucursales(
@@ -94,8 +94,8 @@ public class ReseniaService {
     public record ResumenPuntuacion(Double promedio, Long cantidad) {
 
 
-        public Integer promedioRedondeado() {
-            return promedio == null ? null : (int) Math.round(promedio);
+        public Double promedioConUnDecimal() {
+            return promedio == null ? null : Math.round(promedio * 10.0) / 10.0;
         }
     }
 

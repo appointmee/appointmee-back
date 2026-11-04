@@ -21,7 +21,7 @@ public class SucursalMiniDTO {
     private String nombre;
     private String categoria;
     private String fotoPerfil;
-    private Integer puntuacion;
+    private Double puntuacion;
     private Long cantidadPuntuaciones;
     private List<String> diasApertura;
 

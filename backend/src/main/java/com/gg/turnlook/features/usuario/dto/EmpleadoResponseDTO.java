@@ -18,7 +18,7 @@ public class EmpleadoResponseDTO {
     private String nombre;
     private String apellido;
     private String urlFotoPerfil;
-    private Integer puntuacion;
+    private Double puntuacion;
     private Long cantidadPuntuaciones;
 
 }

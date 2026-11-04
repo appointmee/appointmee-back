@@ -138,9 +138,9 @@ public class ServicioService {
     }
 
 
-    private static Integer puntuacionDe(ResumenPuntuacion resumen) {
+    private static Double puntuacionDe(ResumenPuntuacion resumen) {
 
-        return resumen == null ? null : resumen.promedioRedondeado();
+        return resumen == null ? null : resumen.promedioConUnDecimal();
     }
 
 

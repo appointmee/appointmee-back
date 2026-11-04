@@ -23,7 +23,7 @@ public class ServicioResponseDTO {
      private Integer duracion;
      private BigDecimal precio;
      private String fotoPerfil;
-     private Integer puntuacion;
+     private Double puntuacion;
      private Long cantidadPuntuaciones;
      private String nombreSucursal;
      private String direccionSucursal;
