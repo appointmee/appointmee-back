@@ -41,8 +41,11 @@ public interface ReseniaRepository extends JpaRepository<Resenia, Integer> {
                 SELECT AVG(r.puntuacion)
                 FROM Resenia r
                 WHERE r.turno.empleado.id = :empleadoId
+                    AND r.turno.servicio.sucursal.id = :sucursalId
             """)
-    Double promedioPuntuacionesEmpleado(Integer empleadoId);
+    Double promedioPuntuacionesEmpleado(
+            @Param("empleadoId") Integer empleadoId,
+            @Param("sucursalId") Integer sucursalId);
 
 
     @Query("""
@@ -65,16 +68,19 @@ public interface ReseniaRepository extends JpaRepository<Resenia, Integer> {
                 SELECT COUNT(r)
                 FROM Resenia r
                 WHERE r.turno.empleado.id = :empleadoId
+                    AND r.turno.servicio.sucursal.id = :sucursalId
             """)
-    Long puntuacionesTotalesEmpleado(Integer empleadoId);
+    Long puntuacionesTotalesEmpleado(
+            @Param("empleadoId") Integer empleadoId,
+            @Param("sucursalId") Integer sucursalId);
 
 
-    /// Promedio y cantidad de resenias de varias sucursales en una sola query.
-    /// Devuelve una fila por sucursal: [sucursalId, promedio, cantidad].
-    /// El join tiene que llegar hasta la sucursal (r.turno.servicio.sucursal) y no
-    /// quedarse en el servicio, o el id devuelto seria el del servicio.
-    /// Se usa para las listas, donde consultar cada sucursal por separado
-    /// multiplicaba las queries por la cantidad de sucursales (N+1).
+    // Promedio y cantidad de resenias de varias sucursales en una sola query.
+    // Devuelve una fila por sucursal: [sucursalId, promedio, cantidad].
+    // El join tiene que llegar hasta la sucursal (r.turno.servicio.sucursal) y no
+    // quedarse en el servicio, o el id devuelto seria el del servicio.
+    // Se usa para las listas, donde consultar cada sucursal por separado
+    // multiplicaba las queries por la cantidad de sucursales (N+1).
 
     @Query("""
                 SELECT s.id, AVG(r.puntuacion), COUNT(r.id)
@@ -86,8 +92,8 @@ public interface ReseniaRepository extends JpaRepository<Resenia, Integer> {
     List<Object[]> resumenPuntuacionesPorSucursal(@Param("sucursalIds") List<Integer> sucursalIds);
 
 
-    /// Promedio y cantidad de resenias de varios servicios en una sola query.
-    /// Devuelve una fila por servicio: [servicioId, promedio, cantidad].
+    // Promedio y cantidad de resenias de varios servicios en una sola query.
+    // Devuelve una fila por servicio: [servicioId, promedio, cantidad].
 
     @Query("""
                 SELECT t.servicio.id, AVG(r.puntuacion), COUNT(r.id)
@@ -99,17 +105,21 @@ public interface ReseniaRepository extends JpaRepository<Resenia, Integer> {
     List<Object[]> resumenPuntuacionesPorServicio(@Param("servicioIds") List<Integer> servicioIds);
 
 
-    /// Promedio y cantidad de resenias de varios empleados en una sola query.
-    /// Devuelve una fila por empleado: [empleadoId, promedio, cantidad].
+    // Promedio y cantidad de resenias de varios empleados en una sola query,
+    // considerando unicamente los turnos atendidos en la sucursal indicada.
+    // Devuelve una fila por empleado: [empleadoId, promedio, cantidad].
 
     @Query("""
                 SELECT t.empleado.id, AVG(r.puntuacion), COUNT(r.id)
                 FROM Resenia r
                 JOIN r.turno t
                 WHERE t.empleado.id IN :empleadoIds
+                    AND t.servicio.sucursal.id = :sucursalId
                 GROUP BY t.empleado.id
             """)
-    List<Object[]> resumenPuntuacionesPorEmpleado(@Param("empleadoIds") List<Integer> empleadoIds);
+    List<Object[]> resumenPuntuacionesPorEmpleado(
+            @Param("empleadoIds") List<Integer> empleadoIds,
+            @Param("sucursalId") Integer sucursalId);
 
 
 
