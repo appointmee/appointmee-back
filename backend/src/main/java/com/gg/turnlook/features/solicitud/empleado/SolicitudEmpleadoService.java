@@ -5,6 +5,7 @@ import com.gg.turnlook.common.exception.ForbiddenException;
 import com.gg.turnlook.common.exception.NotFoundException;
 import com.gg.turnlook.common.util.DiasSemanaUtil;
 import com.gg.turnlook.features.resenia.ReseniaService;
+import com.gg.turnlook.features.resenia.ReseniaService.ResumenPuntuacion;
 import com.gg.turnlook.features.solicitud.EstadoSolicitud;
 import com.gg.turnlook.features.solicitud.empleado.dto.SolicitudEmpleadoMiniPropiaDTO;
 import com.gg.turnlook.features.solicitud.empleado.dto.SolicitudEmpleadoMiniSucursalDTO;
@@ -21,6 +22,8 @@ import com.gg.turnlook.features.usuario.rol.Rol;
 import com.gg.turnlook.features.usuario.rol.RolService;
 import jakarta.transaction.Transactional;
 import java.util.List;
+import java.util.Map;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 
 
@@ -29,6 +32,11 @@ import org.springframework.stereotype.Service;
 
 @Service
 public class SolicitudEmpleadoService {
+
+
+    // Limite de los listados de solicitudes. Se mantiene el retorno List para
+    // no cambiar el contrato de la API.
+    private static final int LIMITE_SOLICITUDES = 500;
 
 
     private final SolicitudEmpleadoRepository solicitudEmpleadoRepo;
@@ -60,22 +68,28 @@ public class SolicitudEmpleadoService {
             throw new ForbiddenException("No tenes permisos");
         }
 
-        return solicitudEmpleadoRepo.findBySucursalId(sucursal.getId()).stream()
-                .map(sol -> new SolicitudEmpleadoMiniSucursalDTO(
-                        sol.getId(), sol.getEmpleado().getNombre(),
-                        sol.getEmpleado().getApellido(), sol.getFechaSolicitud())
-                ).toList();
+        // Consulta anterior a la optimización. Reemplazada por findMiniBySucursalId.
+        // return solicitudEmpleadoRepo.findBySucursalId(sucursal.getId()).stream()
+        //         .map(sol -> new SolicitudEmpleadoMiniSucursalDTO(
+        //                 sol.getId(), sol.getEmpleado().getNombre(),
+        //                 sol.getEmpleado().getApellido(), sol.getFechaSolicitud())
+        //         ).toList();
+        return solicitudEmpleadoRepo.findMiniBySucursalId(sucursal.getId(),
+                PageRequest.of(0, LIMITE_SOLICITUDES));
     }
 
 
     public List<SolicitudEmpleadoMiniPropiaDTO> listarSolicitudesRecibidas(
             String userEmail) {
 
-        return solicitudEmpleadoRepo.findByEmpleadoEmail(userEmail)
-                .stream()
-                .map(sol -> new SolicitudEmpleadoMiniPropiaDTO(
-                        sol.getId(), sol.getSucursal().getNombre(), sol.getFechaSolicitud())
-                ).toList();
+        // Consulta anterior a la optimización. Reemplazada por findMiniByEmpleadoEmail.
+        // return solicitudEmpleadoRepo.findByEmpleadoEmail(userEmail)
+        //         .stream()
+        //         .map(sol -> new SolicitudEmpleadoMiniPropiaDTO(
+        //                 sol.getId(), sol.getSucursal().getNombre(), sol.getFechaSolicitud())
+        //         ).toList();
+        return solicitudEmpleadoRepo.findMiniByEmpleadoEmail(userEmail,
+                PageRequest.of(0, LIMITE_SOLICITUDES));
     }
 
 
@@ -111,16 +125,35 @@ public class SolicitudEmpleadoService {
         solicitudDTO.setEmpleado(empleado);
 
         Sucursal s = solicitud.getSucursal();
+
+        // Consulta anterior a la optimización. Reemplazada por getPuntuacionesSucursales.
+        // reseniaService.getPuntuacionPromedioSucursal(s.getId()),
+        // reseniaService.getPuntuacionesTotalesSucursal(s.getId()),
+        Map<Integer, ResumenPuntuacion> puntuaciones =
+                reseniaService.getPuntuacionesSucursales(List.of(s.getId()));
+
         SucursalMiniDTO sucursal = new SucursalMiniDTO(
                 s.getId(), s.getNombre(), s.getCategoria().getCategoria().name(),
                 s.getFotoPerfil().getFotoValida(),
-                reseniaService.getPuntuacionPromedioSucursal(s.getId()),
-                reseniaService.getPuntuacionesTotalesSucursal(s.getId()),
+                puntuacionDe(puntuaciones.get(s.getId())),
+                cantidadDe(puntuaciones.get(s.getId())),
                 DiasSemanaUtil.aNombres(s.getDiasApertura()));
 
         solicitudDTO.setSucursal(sucursal);
 
         return solicitudDTO;
+    }
+
+
+    private static Double puntuacionDe(ResumenPuntuacion resumen) {
+
+        return resumen == null ? null : resumen.promedioConUnDecimal();
+    }
+
+
+    private static Long cantidadDe(ResumenPuntuacion resumen) {
+
+        return resumen == null ? 0L : resumen.cantidad();
     }
 
 
@@ -167,7 +200,10 @@ public class SolicitudEmpleadoService {
 
     private SolicitudEmpleado listarSolicitudPorId(Integer solicitudId) {
 
-        return solicitudEmpleadoRepo.findById(solicitudId)
+        // Consulta anterior a la optimización. Reemplazada por findByIdConDetalle.
+        // return solicitudEmpleadoRepo.findById(solicitudId)
+        //         .orElseThrow(() -> new NotFoundException("No se encontró la solicitud"));
+        return solicitudEmpleadoRepo.findByIdConDetalle(solicitudId)
                 .orElseThrow(() -> new NotFoundException("No se encontró la solicitud"));
     }
 

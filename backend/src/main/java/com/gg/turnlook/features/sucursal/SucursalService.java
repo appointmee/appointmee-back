@@ -74,9 +74,11 @@ public class SucursalService {
 
     public boolean enSucursal(String userEmail, Sucursal sucursal) {
 
-        return sucursal.getEmpleador().getEmail().equals(userEmail) ||
-                sucursal.getEmpleados().stream()
-                        .anyMatch(u -> u.getEmail().equals(userEmail));
+        // Consulta anterior a la optimización. Reemplazada por contarUsuarioEnSucursal.
+        // return sucursal.getEmpleador().getEmail().equals(userEmail) ||
+        //         sucursal.getEmpleados().stream()
+        //                 .anyMatch(u -> u.getEmail().equals(userEmail));
+        return sucRepo.contarUsuarioEnSucursal(sucursal.getId(), userEmail) > 0;
     }
 
 
@@ -294,7 +296,10 @@ public class SucursalService {
 
     public SucursalResponseDTO verSucursalPorId(Integer id) {
 
-        Sucursal sucursal = listarSucursalPorId(id);
+        // Consulta anterior a la optimización. Reemplazada por findByIdConDetalle.
+        // Sucursal sucursal = listarSucursalPorId(id);
+        Sucursal sucursal = sucRepo.findByIdConDetalle(id)
+                .orElseThrow(() -> new NotFoundException("No se encontró la sucursal"));
 
         return mapearSucursal(sucursal);
     }
@@ -326,12 +331,20 @@ public class SucursalService {
 
         dto.setFotoPerfil(suc.getFotoPerfil().getFotoValida());
 
-        dto.setPuntuacion(reseniaService.getPuntuacionPromedioSucursal(suc.getId()));
+        // Consulta anterior a la optimización. Reemplazada por getPuntuacionesSucursales.
+        // dto.setPuntuacion(reseniaService.getPuntuacionPromedioSucursal(suc.getId()));
+        // dto.setCantidadPuntuaciones(reseniaService.getPuntuacionesTotalesSucursal(suc.getId()));
+        Map<Integer, ResumenPuntuacion> puntuaciones =
+                reseniaService.getPuntuacionesSucursales(List.of(suc.getId()));
+        dto.setPuntuacion(puntuacionDe(puntuaciones.get(suc.getId())));
+        dto.setCantidadPuntuaciones(cantidadDe(puntuaciones.get(suc.getId())));
 
-        dto.setCantidadPuntuaciones(reseniaService.getPuntuacionesTotalesSucursal(suc.getId()));
-
-        List<ImagenResponseDTO> imagenes = listarImagenesPorSucursal(suc.getId(),
-                suc.getEmpleador().getEmail());
+        // Se usa la sucursal ya cargada (con su empleador en el EntityGraph) en
+        // vez de volver a buscarla dentro de listarImagenesPorSucursal.
+        // Consulta anterior a la optimización. Reemplazada por listarImagenesPorSucursal de ImagenService.
+        // List<ImagenResponseDTO> imagenes = listarImagenesPorSucursal(suc.getId(),
+        //         suc.getEmpleador().getEmail());
+        List<ImagenResponseDTO> imagenes = imagenService.listarImagenesPorSucursal(suc);
         dto.setImagenes(imagenes);
 
         UsuarioMiniDTO empleador = new UsuarioMiniDTO(
@@ -383,7 +396,10 @@ public class SucursalService {
 
 
     public Sucursal listarSucursalPorId(Integer id) {
-        return sucRepo.findById(id).
+        // Consulta anterior a la optimización. Reemplazada por findByIdConEmpleador.
+        // return sucRepo.findById(id).
+        //         orElseThrow(() -> new NotFoundException("No se encontró la sucursal"));
+        return sucRepo.findByIdConEmpleador(id).
                 orElseThrow(() -> new NotFoundException("No se encontró la sucursal"));
     }
 

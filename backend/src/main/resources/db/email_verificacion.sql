@@ -18,6 +18,9 @@ ALTER TABLE public.verificacion
     ADD COLUMN IF NOT EXISTS usuario_id INTEGER REFERENCES public.usuarios(id) ON DELETE CASCADE;
 CREATE INDEX IF NOT EXISTS idx_verificacion_usuario_canal_fecha
     ON public.verificacion(usuario_id, canal, fecha_creacion DESC, id DESC);
+-- Busqueda del ultimo codigo por canal y destinatario (sin usuario).
+CREATE INDEX IF NOT EXISTS idx_verificacion_canal_destinatario_fecha
+    ON public.verificacion(canal, destinatario, fecha_creacion DESC, id DESC);
 ALTER TABLE public.verificacion ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON public.verificacion FROM anon, authenticated;
 COMMIT;

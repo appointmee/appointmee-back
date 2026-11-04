@@ -1,12 +1,13 @@
 package com.gg.turnlook.features.usuario;
 
+import com.gg.turnlook.features.usuario.dto.UsuarioMiniAdminDTO;
 import java.util.List;
 import java.util.Optional;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
-
-
-
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 
 
@@ -14,8 +15,25 @@ import org.springframework.data.jpa.repository.JpaRepository;
 public interface UsuarioRepository extends JpaRepository<Usuario,Integer> {
 
 
-    @EntityGraph(attributePaths = "roles")
+    // fotoPerfil se trae junto con los roles porque el perfil y varias
+    // respuestas de usuario necesitan la foto sin disparar una query extra.
+    @EntityGraph(attributePaths = {"roles", "fotoPerfil"})
     Optional<Usuario> findByEmailAndActivoTrue(String email);
+
+    @EntityGraph(attributePaths = {"roles"})
+    @Query("select u from Usuario u where u.id = :id")
+    Optional<Usuario> findByIdConRoles(@Param("id") Integer id);
+
+    // Perfil completo: roles, foto y sucursales con su categoria y foto.
+    @EntityGraph(attributePaths = {
+            "roles", "fotoPerfil",
+            "sucursalesEmpleado", "sucursalesEmpleado.categoria",
+            "sucursalesEmpleado.fotoPerfil"})
+    @Query("select u from Usuario u where u.id = :id")
+    Optional<Usuario> findByIdConPerfil(@Param("id") Integer id);
+
+    @Query("select u.id from Usuario u where u.email = :email and u.activo = true")
+    Optional<Integer> findIdByEmailAndActivoTrue(@Param("email") String email);
 
     @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
     @org.springframework.data.jpa.repository.Query("select u from Usuario u where u.id = :id")
@@ -27,6 +45,22 @@ public interface UsuarioRepository extends JpaRepository<Usuario,Integer> {
 
     boolean existsByEmailAndActivoFalse(String email);
 
+
+    // Listado administrativo: los filtros se resuelven en la base y solo se
+    // proyectan los campos que devuelve UsuarioMiniAdminDTO.
+    @Query("""
+                SELECT new com.gg.turnlook.features.usuario.dto.UsuarioMiniAdminDTO(
+                    u.id, u.nombre, u.apellido, u.activo)
+                FROM Usuario u
+                WHERE (:nombre IS NULL OR LOWER(u.nombre) = LOWER(:nombre))
+                    AND (:apellido IS NULL OR LOWER(u.apellido) = LOWER(:apellido))
+                    AND (:activo IS NULL OR u.activo = :activo)
+                ORDER BY u.id
+            """)
+    List<UsuarioMiniAdminDTO> buscarMiniAdmin(
+            @Param("nombre") String nombre,
+            @Param("apellido") String apellido,
+            @Param("activo") Boolean activo,
+            Pageable pageable);
+
 }
-
-

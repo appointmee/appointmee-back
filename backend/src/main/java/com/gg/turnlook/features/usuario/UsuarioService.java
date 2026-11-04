@@ -9,6 +9,8 @@ import com.gg.turnlook.common.exception.NotFoundException;
 import com.gg.turnlook.common.exception.UnauthorizedException;
 import com.gg.turnlook.features.imagen.ImagenService;
 import com.gg.turnlook.features.resenia.ReseniaService;
+import com.gg.turnlook.features.resenia.ReseniaService.ResumenPuntuacion;
+import com.gg.turnlook.features.sucursal.Sucursal;
 import com.gg.turnlook.features.sucursal.dto.SucursalMiniDTO;
 import com.gg.turnlook.features.usuario.dto.UsuarioCrearDTO;
 import com.gg.turnlook.features.usuario.dto.UsuarioEmailDTO;
@@ -21,9 +23,11 @@ import com.gg.turnlook.features.usuario.rol.ERol;
 import com.gg.turnlook.features.usuario.rol.Rol;
 import com.gg.turnlook.features.usuario.rol.RolService;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -32,6 +36,11 @@ import org.springframework.stereotype.Service;
 
 @Service
 public class UsuarioService {
+
+
+    // Limite del listado administrativo. Se mantiene el retorno List para no
+    // cambiar el contrato de la API, pero se evita traer todos los usuarios.
+    private static final int LIMITE_USUARIOS_ADMIN = 500;
 
 
     private final UsuarioRepository usRepo;
@@ -170,20 +179,30 @@ public class UsuarioService {
     }
 
 
+    // Consulta anterior a la optimización. Reemplazada por buscarMiniAdmin.
+    // public List<UsuarioMiniAdminDTO> listarUsuarios() {
+    //     return usRepo.findAll().stream()
+    //             .map(u -> new UsuarioMiniAdminDTO(
+    //                     u.getId(), u.getNombre(), u.getApellido(), u.isActivo()))
+    //             .toList();
+    // }
     public List<UsuarioMiniAdminDTO> listarUsuarios() {
-        return usRepo.findAll().stream()
-                .map(u -> new UsuarioMiniAdminDTO(
-                        u.getId(), u.getNombre(), u.getApellido(), u.isActivo()))
-                .toList();
+        return usRepo.buscarMiniAdmin(null, null, null,
+                PageRequest.of(0, LIMITE_USUARIOS_ADMIN));
     }
 
 
+    // Consulta anterior a la optimización. Reemplazada por buscarMiniAdmin.
+    // public List<UsuarioMiniAdminDTO> filtrarListaUsuarios(String nombre, String apellido, Boolean activo) {
+    //     return listarUsuarios().stream()
+    //             .filter(u -> nombre == null || u.getNombre().equalsIgnoreCase(nombre))
+    //             .filter(u -> apellido == null || u.getApellido().equalsIgnoreCase(apellido))
+    //             .filter(u -> activo == null || u.isEstado() == activo)
+    //             .toList();
+    // }
     public List<UsuarioMiniAdminDTO> filtrarListaUsuarios(String nombre, String apellido, Boolean activo) {
-        return listarUsuarios().stream()
-                .filter(u -> nombre == null || u.getNombre().equalsIgnoreCase(nombre))
-                .filter(u -> apellido == null || u.getApellido().equalsIgnoreCase(apellido))
-                .filter(u -> activo == null || u.isEstado() == activo)
-                .toList();
+        return usRepo.buscarMiniAdmin(nombre, apellido, activo,
+                PageRequest.of(0, LIMITE_USUARIOS_ADMIN));
     }
 
 
@@ -208,6 +227,14 @@ public class UsuarioService {
     }
 
 
+    // Variante para validaciones que necesitan los roles sin cargar el resto
+    // de las relaciones del usuario.
+    public Usuario listarUsuarioPorIdConRoles(Integer id) {
+        return usRepo.findByIdConRoles(id).
+                orElseThrow(() -> new NotFoundException("Usuario no encontrado"));
+    }
+
+
     public UsuarioPerfilResponseDTO verPerfilPorId(Integer userId, String userEmail) {
 
         Usuario activo = listarUsuarioPorEmail(userEmail);
@@ -222,7 +249,10 @@ public class UsuarioService {
 
 
     private UsuarioPerfilResponseDTO mapearUsuario(Integer userId) {
-        Usuario u = listarUsuarioPorId(userId);
+        // Consulta anterior a la optimización. Reemplazada por findByIdConPerfil.
+        // Usuario u = listarUsuarioPorId(userId);
+        Usuario u = usRepo.findByIdConPerfil(userId)
+                .orElseThrow(() -> new NotFoundException("Usuario no encontrado"));
         UsuarioPerfilResponseDTO uPerfil = new UsuarioPerfilResponseDTO();
 
         uPerfil.setId(u.getId());
@@ -239,17 +269,35 @@ public class UsuarioService {
 
         uPerfil.setFotoPerfil(u.getFotoPerfil().getFotoValida());
 
+        // Las puntuaciones de todas las sucursales del usuario en una sola
+        // query, en vez de dos por sucursal.
+        Map<Integer, ResumenPuntuacion> puntuaciones =
+                reseniaService.getPuntuacionesSucursales(
+                        u.getSucursalesEmpleado().stream().map(Sucursal::getId).toList());
+
         uPerfil.setSucursalesEmpleado(u.getSucursalesEmpleado().stream()
                 .map(suc -> new SucursalMiniDTO(suc.getId(), suc.getNombre(),
                         suc.getCategoria().getCategoria().name(),
                         suc.getFotoPerfil().getFotoValida(),
-                        reseniaService.getPuntuacionPromedioSucursal(suc.getId()),
-                        reseniaService.getPuntuacionesTotalesSucursal(suc.getId()),
+                        puntuacionDe(puntuaciones.get(suc.getId())),
+                        cantidadDe(puntuaciones.get(suc.getId())),
                         DiasSemanaUtil.aNombres(suc.getDiasApertura()))
                 )
                 .toList());
 
         return uPerfil;
+    }
+
+
+    private static Double puntuacionDe(ResumenPuntuacion resumen) {
+
+        return resumen == null ? null : resumen.promedioConUnDecimal();
+    }
+
+
+    private static Long cantidadDe(ResumenPuntuacion resumen) {
+
+        return resumen == null ? 0L : resumen.cantidad();
     }
 
 

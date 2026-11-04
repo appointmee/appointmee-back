@@ -26,8 +26,12 @@ public class AuthService {
     @Transactional
     public LoginResponseDTO login(LoginDTO request) {
         String email = request.getEmail().trim().toLowerCase(Locale.ROOT);
-        Usuario encontrado = usuarios.findByEmailAndActivoTrue(email).orElseThrow(() -> new BadCredentialsException("Credenciales incorrectas"));
-        Usuario usuario = bloqueo.bloquear(encontrado.getId());
+        // Consulta anterior a la optimización. Reemplazada por findIdByEmailAndActivoTrue.
+        // Usuario encontrado = usuarios.findByEmailAndActivoTrue(email).orElseThrow(() -> new BadCredentialsException("Credenciales incorrectas"));
+        // Usuario usuario = bloqueo.bloquear(encontrado.getId());
+        Integer usuarioId = usuarios.findIdByEmailAndActivoTrue(email)
+                .orElseThrow(() -> new BadCredentialsException("Credenciales incorrectas"));
+        Usuario usuario = bloqueo.bloquear(usuarioId);
         authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(email, request.getPass()));
         if (!usuario.isActivo()) throw new BadCredentialsException("Credenciales incorrectas");
 

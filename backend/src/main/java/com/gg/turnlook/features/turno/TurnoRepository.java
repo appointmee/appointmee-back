@@ -1,16 +1,18 @@
 package com.gg.turnlook.features.turno;
 
+import com.gg.turnlook.features.turno.dto.TurnoDisponibilidadDTO;
+import com.gg.turnlook.features.turno.dto.TurnoMiniDTO;
 import com.gg.turnlook.features.usuario.Usuario;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Collection;
+import java.util.Optional;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
-
-
-
 
 
 
@@ -24,21 +26,97 @@ public interface TurnoRepository extends JpaRepository<Turno, Integer> {
                              @Param("nuevoEstado") EstadoTurno nuevoEstado);
 
 
-    List<Turno> findByEmpleadoAndFechaHoraBetweenAndEstadoNot(Usuario empleado,
-                                                  LocalDateTime inicioDia, LocalDateTime finDia,
-                                                              EstadoTurno estadoTurno);
+    // Consulta anterior a la optimización. Reemplazada por findDisponibilidadPorEmpleado.
+    // List<Turno> findByEmpleadoAndFechaHoraBetweenAndEstadoNot(Usuario empleado,
+    //                                               LocalDateTime inicioDia, LocalDateTime finDia,
+    //                                                           EstadoTurno estadoTurno);
+
+    // Trae solamente la fecha y la duracion del servicio. Antes se cargaba el turno
+    // completo y, por cada uno, se accedia de forma lazy a su servicio.
+    @Query("""
+                SELECT new com.gg.turnlook.features.turno.dto.TurnoDisponibilidadDTO(
+                    t.fechaHora, t.servicio.duracion)
+                FROM Turno t
+                WHERE t.empleado = :empleado
+                    AND t.fechaHora BETWEEN :inicioDia AND :finDia
+                    AND t.estado <> :estadoTurno
+            """)
+    List<TurnoDisponibilidadDTO> findDisponibilidadPorEmpleado(
+            @Param("empleado") Usuario empleado,
+            @Param("inicioDia") LocalDateTime inicioDia,
+            @Param("finDia") LocalDateTime finDia,
+            @Param("estadoTurno") EstadoTurno estadoTurno);
 
 
-    List<Turno> findByServicioSucursalIdAndEstado(Integer sucursalId, EstadoTurno estadoTurno);
+    // Consulta anterior a la optimización. Reemplazada por findMiniByServicioSucursalIdAndEstado.
+    // List<Turno> findByServicioSucursalIdAndEstado(Integer sucursalId, EstadoTurno estadoTurno);
+
+    @Query("""
+                SELECT new com.gg.turnlook.features.turno.dto.TurnoMiniDTO(
+                    t.id, t.servicio.nombre, t.fechaHora, t.estado, r.puntuacion)
+                FROM Turno t
+                LEFT JOIN t.resenia r
+                WHERE t.servicio.sucursal.id = :sucursalId
+                    AND t.estado = :estadoTurno
+                ORDER BY t.fechaHora DESC, t.id DESC
+            """)
+    List<TurnoMiniDTO> findMiniByServicioSucursalIdAndEstado(
+            @Param("sucursalId") Integer sucursalId,
+            @Param("estadoTurno") EstadoTurno estadoTurno,
+            Pageable pageable);
 
 
-    List<Turno> findByClienteEmail(String clienteEmail);
+    // Consulta anterior a la optimización. Reemplazada por findMiniByClienteEmail.
+    // List<Turno> findByClienteEmail(String clienteEmail);
+
+    @Query("""
+                SELECT new com.gg.turnlook.features.turno.dto.TurnoMiniDTO(
+                    t.id, t.servicio.nombre, t.fechaHora, t.estado, r.puntuacion)
+                FROM Turno t
+                LEFT JOIN t.resenia r
+                WHERE t.cliente.email = :clienteEmail
+                ORDER BY t.fechaHora DESC, t.id DESC
+            """)
+    List<TurnoMiniDTO> findMiniByClienteEmail(
+            @Param("clienteEmail") String clienteEmail,
+            Pageable pageable);
 
 
-    List<Turno> findByEmpleadoEmailAndServicioSucursalIdAndEstado(
-            String empleadoEmail, Integer sucursalId, EstadoTurno estadoTurno);
+    // Consulta anterior a la optimización. Reemplazada por
+    // findMiniByEmpleadoEmailAndServicioSucursalIdAndEstado.
+    // List<Turno> findByEmpleadoEmailAndServicioSucursalIdAndEstado(
+    //         String empleadoEmail, Integer sucursalId, EstadoTurno estadoTurno);
+
+    @Query("""
+                SELECT new com.gg.turnlook.features.turno.dto.TurnoMiniDTO(
+                    t.id, t.servicio.nombre, t.fechaHora, t.estado, r.puntuacion)
+                FROM Turno t
+                LEFT JOIN t.resenia r
+                WHERE t.empleado.email = :empleadoEmail
+                    AND t.servicio.sucursal.id = :sucursalId
+                    AND t.estado = :estadoTurno
+                ORDER BY t.fechaHora DESC, t.id DESC
+            """)
+    List<TurnoMiniDTO> findMiniByEmpleadoEmailAndServicioSucursalIdAndEstado(
+            @Param("empleadoEmail") String empleadoEmail,
+            @Param("sucursalId") Integer sucursalId,
+            @Param("estadoTurno") EstadoTurno estadoTurno,
+            Pageable pageable);
+
+
+    // Carga en una sola query las relaciones que usan los detalles y las
+    // validaciones de cancelacion/finalizacion/resenia.
+    @EntityGraph(attributePaths = {
+            "cliente", "empleado", "empleado.fotoPerfil",
+            "servicio", "servicio.sucursal", "servicio.sucursal.empleador",
+            "resenia"})
+    @Query("SELECT t FROM Turno t WHERE t.id = :id")
+    Optional<Turno> findByIdConDetalles(@Param("id") Integer id);
+
+
+    // Los webhooks solo necesitan el estado; evita cargar la entidad completa.
+    @Query("SELECT t.estado FROM Turno t WHERE t.id = :id")
+    Optional<EstadoTurno> findEstadoById(@Param("id") Integer id);
 
 
 }
-
-

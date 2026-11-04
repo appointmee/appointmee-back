@@ -15,6 +15,7 @@ import com.gg.turnlook.features.usuario.rol.Rol;
 import com.gg.turnlook.features.usuario.rol.RolService;
 import java.util.List;
 import java.util.Objects;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 
 
@@ -23,6 +24,11 @@ import org.springframework.stereotype.Service;
 
 @Service
 public class SolicitudEmpleadorService {
+
+
+    // Limite de los listados de solicitudes. Se mantiene el retorno List para
+    // no cambiar el contrato de la API.
+    private static final int LIMITE_SOLICITUDES = 500;
 
 
     private final SolicitudEmpleadorRepository solicitudEmpleadorRepo;
@@ -60,23 +66,29 @@ public class SolicitudEmpleadorService {
 
     public List<SolicitudEmpleadorMiniDTO> listarSolicitudesPendientes() {
 
-        return solicitudEmpleadorRepo.findByEstado(
-                        EstadoSolicitud.PENDIENTE).stream()
-                .map(sol -> new SolicitudEmpleadorMiniDTO(
-                        sol.getId(), sol.getUsuario().getNombre(),
-                        sol.getUsuario().getApellido(), sol.getFechaSolicitud())
-                ).toList();
+        // Consulta anterior a la optimización. Reemplazada por findMiniByEstado.
+        // return solicitudEmpleadorRepo.findByEstado(
+        //                 EstadoSolicitud.PENDIENTE).stream()
+        //         .map(sol -> new SolicitudEmpleadorMiniDTO(
+        //                 sol.getId(), sol.getUsuario().getNombre(),
+        //                 sol.getUsuario().getApellido(), sol.getFechaSolicitud())
+        //         ).toList();
+        return solicitudEmpleadorRepo.findMiniByEstado(EstadoSolicitud.PENDIENTE,
+                PageRequest.of(0, LIMITE_SOLICITUDES));
     }
 
 
     public List<SolicitudEmpleadorMiniDTO> listarSolicitudesPropias(String userEmail) {
 
-        return solicitudEmpleadorRepo.findByUsuarioEmail(userEmail).
-                stream()
-                .map(sol -> new SolicitudEmpleadorMiniDTO(
-                        sol.getId(), sol.getUsuario().getNombre(),
-                        sol.getUsuario().getApellido(), sol.getFechaSolicitud())
-                ).toList();
+        // Consulta anterior a la optimización. Reemplazada por findMiniByUsuarioEmail.
+        // return solicitudEmpleadorRepo.findByUsuarioEmail(userEmail).
+        //         stream()
+        //         .map(sol -> new SolicitudEmpleadorMiniDTO(
+        //                 sol.getId(), sol.getUsuario().getNombre(),
+        //                 sol.getUsuario().getApellido(), sol.getFechaSolicitud())
+        //         ).toList();
+        return solicitudEmpleadorRepo.findMiniByUsuarioEmail(userEmail,
+                PageRequest.of(0, LIMITE_SOLICITUDES));
     }
 
 

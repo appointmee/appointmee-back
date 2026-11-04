@@ -6,6 +6,7 @@ import java.util.Optional;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 
 
@@ -51,6 +52,38 @@ public interface SucursalRepository extends JpaRepository<Sucursal, Integer> {
                 )
             """)
     List<Sucursal> findSucursalesDondeEsta(String email);
+
+
+    // Variante usada por las validaciones de permisos: trae el empleador en la
+    // misma query y evita el lazy load al comparar su email.
+    @EntityGraph(attributePaths = {"empleador"})
+    @Query("SELECT s FROM Sucursal s WHERE s.id = :id")
+    Optional<Sucursal> findByIdConEmpleador(@Param("id") Integer id);
+
+
+    // Detalle de sucursal: categoria, foto, empleador y empleados en una sola
+    // query, para que el mapeo no dispare consultas lazy por cada relacion.
+    @EntityGraph(attributePaths = {
+            "categoria", "fotoPerfil", "empleador", "empleados"})
+    @Query("SELECT s FROM Sucursal s WHERE s.id = :id")
+    Optional<Sucursal> findByIdConDetalle(@Param("id") Integer id);
+
+
+    // Verificacion de pertenencia resuelta en la base, sin cargar la coleccion
+    // completa de empleados de la sucursal.
+    @Query("""
+                SELECT COUNT(s) FROM Sucursal s
+                WHERE s.id = :sucursalId
+                    AND (
+                        s.empleador.email = :email
+                        OR EXISTS (
+                            SELECT 1 FROM s.empleados e WHERE e.email = :email
+                        )
+                    )
+            """)
+    long contarUsuarioEnSucursal(
+            @Param("sucursalId") Integer sucursalId,
+            @Param("email") String email);
 
 
 }
