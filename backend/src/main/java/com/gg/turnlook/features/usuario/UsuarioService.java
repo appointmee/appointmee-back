@@ -4,6 +4,7 @@ import com.gg.turnlook.common.util.DiasSemanaUtil;
 
 import com.gg.turnlook.auth.dto.LoginDTO;
 import com.gg.turnlook.common.exception.ConflictException;
+import com.gg.turnlook.common.exception.RegistroPendienteVerificacionException;
 import com.gg.turnlook.common.exception.ForbiddenException;
 import com.gg.turnlook.common.exception.NotFoundException;
 import com.gg.turnlook.common.exception.UnauthorizedException;
@@ -96,7 +97,15 @@ public class UsuarioService {
     public Usuario crearUsuario(UsuarioCrearDTO u) {
 
         u.setEmail(u.getEmail().trim().toLowerCase(java.util.Locale.ROOT));
-        if (usRepo.existsByEmail(u.getEmail())) throw new ConflictException("El email ingresado ya está en uso");
+        if (usRepo.existsByEmail(u.getEmail())) {
+            // Solo informamos el estado pendiente tras comprobar la contraseña.
+            Usuario existente = usRepo.findByEmailAndActivoTrue(u.getEmail()).orElse(null);
+            if (existente != null && !existente.isEmailVerificado()
+                    && passEncoder.matches(u.getPassword(), existente.getPassword())) {
+                throw new RegistroPendienteVerificacionException();
+            }
+            throw new ConflictException("El email ingresado ya está en uso");
+        }
         Rol rol = rolService.listarPorRol(ERol.CLIENTE);
 
         Usuario user = new Usuario(u.getNombre(), u.getApellido(), u.getEmail(),

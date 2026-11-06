@@ -6,6 +6,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
+import org.springframework.web.util.HtmlUtils;
 
 import java.util.List;
 import java.util.Map;
@@ -50,9 +51,28 @@ public class EmailService implements CanalEnvioService {
                 .toBodilessEntity();
     }
     public void enviarRecuperacion(String destinatario, String enlace, long minutos) {
+        String html = """
+                <!doctype html>
+                <html lang="es">
+                <body style="margin:0;padding:32px 16px;background:#f5f5f5;font-family:Arial,sans-serif;color:#202020;">
+                  <main style="max-width:480px;margin:0 auto;padding:32px;background:#ffffff;border-radius:16px;">
+                    <p style="font-size:18px;font-weight:bold;">AppointMee</p>
+                    <h1 style="font-size:24px;">Restablecé tu contraseña</h1>
+                    <p style="line-height:1.6;">Recibimos una solicitud para cambiar la contraseña de tu cuenta.</p>
+                    <p style="margin:28px 0;">
+                      <a href="%s" style="display:inline-block;padding:14px 24px;border-radius:8px;background:#f7c65a;color:#17130a;font-weight:bold;text-decoration:none;">Restablecer contraseña</a>
+                    </p>
+                    <p style="line-height:1.6;">El botón permite cambiar tu contraseña una sola vez y vence en %d minutos.</p>
+                    <p style="color:#666666;line-height:1.6;">Si no solicitaste este cambio, ignorá este correo.</p>
+                  </main>
+                </body>
+                </html>
+                """.formatted(HtmlUtils.htmlEscape(enlace), minutos);
+
         cliente.post().uri("/emails").contentType(MediaType.APPLICATION_JSON)
                 .body(Map.of("from", remitente, "to", List.of(destinatario),
                         "subject", "Recuperar contraseña - Appointme",
+                        "html", html,
                         "text", "Restablecé tu contraseña: " + enlace + "\nVence en " + minutos
                                 + " minutos. Si no lo solicitaste, ignorá este correo."))
                 .retrieve().toBodilessEntity();

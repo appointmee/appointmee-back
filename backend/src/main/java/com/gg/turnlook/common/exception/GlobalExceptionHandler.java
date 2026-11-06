@@ -77,6 +77,10 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(ConflictException.class)
     public ResponseEntity<?> handleConflict(ConflictException e){
+        if (e instanceof RegistroPendienteVerificacionException) {
+            return ResponseEntity.status(409).body(java.util.Map.of(
+                    "code", "REGISTRATION_PENDING_VERIFICATION", "message", e.getMessage()));
+        }
         return ResponseEntity.status(409).body(e.getMessage());
     }
 
