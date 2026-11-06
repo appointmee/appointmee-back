@@ -110,7 +110,11 @@ class AuthIntegrationTest {
         passwords.solicitar(usuario.getEmail());
         String token = enlace.get().split("token=")[1];
         assertTrue(resetTokens.findByTokenHash(TokenSeguro.hash(token)).isPresent());
+        assertTrue(passwords.validarEnlace(token).valido());
+        assertTrue(passwords.validarEnlace(token).expiresInSeconds() > 0);
+        assertTrue(passwords.validarEnlace(token).valido()); // Consultarlo no lo consume.
         passwords.restablecer(token, "NuevaPassword123!");
+        assertFalse(passwords.validarEnlace(token).valido());
         assertTrue(encoder.matches("NuevaPassword123!", usuarios.findById(usuario.getId()).orElseThrow().getPassword()));
         assertEquals(1, usuarios.findById(usuario.getId()).orElseThrow().getCredencialesVersion());
         assertThrows(BadRequestException.class, () -> passwords.restablecer(token, PASSWORD));
@@ -170,7 +174,29 @@ class AuthIntegrationTest {
             resetTokens.findByTokenHash(TokenSeguro.hash(token)).orElseThrow().setFechaVencimiento(Instant.now().minusSeconds(1));
         });
         assertThrows(BadRequestException.class, () -> passwords.restablecer(token, "OtraPassword123!"));
+        assertFalse(passwords.validarEnlace(token).valido());
         assertTrue(encoder.matches(PASSWORD, usuarios.findById(usuario.getId()).orElseThrow().getPassword()));
+    }
+
+    @Test void validacionPublicaDelEnlaceNoRequiereSesionNiDevuelveElToken() throws Exception {
+        String token = TokenSeguro.generar();
+        PasswordResetToken registro = new PasswordResetToken();
+        registro.setUsuario(usuario);
+        registro.setTokenHash(TokenSeguro.hash(token));
+        registro.setFechaVencimiento(Instant.now().plusSeconds(600));
+        resetTokens.saveAndFlush(registro);
+
+        var response = post("/auth/reset-password/validate", "{\"token\":\"" + token + "\"}");
+        assertEquals(200, response.statusCode());
+        assertTrue(response.body().contains("\"valido\":true"));
+        assertFalse(response.body().contains(token));
+        assertTrue(response.headers().firstValue("Cache-Control").orElse("").contains("no-store"));
+        assertTrue(resetTokens.findByTokenHash(TokenSeguro.hash(token)).isPresent());
+
+        registro.setFechaUso(Instant.now());
+        resetTokens.saveAndFlush(registro);
+        assertFalse(passwords.validarEnlace(token).valido());
+        assertFalse(passwords.validarEnlace(TokenSeguro.generar()).valido());
     }
 
     private void pendiente() {

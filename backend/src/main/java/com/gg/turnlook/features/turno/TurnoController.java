@@ -43,7 +43,6 @@ public class TurnoController {
     }
 
 
-    @PreAuthorize("hasRole('CLIENTE')")
     @GetMapping("/disponibilidad/empleado/{empleadoId}/servicio/{servicioId}")
     public ResponseEntity<?> verDisponibilidad(@PathVariable("empleadoId") Integer empleadoId,
                                                @PathVariable("servicioId") Integer servicioId) {

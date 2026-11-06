@@ -79,7 +79,7 @@ public class SecurityConfig {
                                 "/mis-sucursales-folder/**",
 
                                 "/auth/login", "/auth/register", "/auth/refresh",
-                                "/auth/forgot-password", "/auth/reset-password",
+                                "/auth/forgot-password", "/auth/reset-password", "/auth/reset-password/validate",
                                 "/auth/send-verification", "/auth/verify-email", "/auth/verification-status", "/auth/complete-verification",
                                 "/usuarios/inicio-sesion",
                                 "/usuarios/recuperar-cuenta",
@@ -99,7 +99,12 @@ public class SecurityConfig {
                                 "/sucursales/listar",
                                 "/sucursales/listar/filtrar",
                                 "/sucursales/categorias",
-                                "/sucursales/*")
+                                "/sucursales/*",
+                                "/sucursales/*/elegir-empleado",
+                                "/sucursales/*/resenias",
+                                "/servicios/listar/sucursal/*",
+                                "/servicios/*",
+                                "/turnos/disponibilidad/empleado/*/servicio/*")
                         .permitAll()
                         .anyRequest().authenticated())
 

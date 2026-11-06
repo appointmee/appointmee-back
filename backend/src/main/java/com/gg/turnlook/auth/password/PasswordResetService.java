@@ -1,5 +1,6 @@
 package com.gg.turnlook.auth.password;
 import com.gg.turnlook.auth.TokenSeguro;
+import com.gg.turnlook.auth.dto.EstadoRecuperacionResponse;
 import com.gg.turnlook.auth.refresh.RefreshTokenRepository;
 import com.gg.turnlook.common.exception.BadRequestException;
 import com.gg.turnlook.features.usuario.*;
@@ -51,6 +52,17 @@ public class PasswordResetService {
         usuario.setCredencialesVersion(usuario.getCredencialesVersion() + 1);
         refreshTokens.revocarPorUsuario(usuario.getId());
         repository.revocarPorUsuario(usuario.getId());
+    }
+
+    @Transactional(readOnly = true)
+    public EstadoRecuperacionResponse validarEnlace(String token) {
+        return repository.findByTokenHash(TokenSeguro.hash(token))
+                .filter(registro -> registro.getFechaUso() == null && registro.getUsuario().isActivo())
+                .map(registro -> {
+                    long segundos = java.time.Duration.between(Instant.now(), registro.getFechaVencimiento()).toSeconds();
+                    return new EstadoRecuperacionResponse(segundos > 0, Math.max(0, segundos));
+                })
+                .orElseGet(() -> new EstadoRecuperacionResponse(false, 0));
     }
     private static BadRequestException invalido() { return new BadRequestException("Token inválido, vencido o utilizado"); }
 }

@@ -28,12 +28,24 @@ public interface SucursalRepository extends JpaRepository<Sucursal, Integer> {
 
 
     @EntityGraph(attributePaths = {"categoria", "fotoPerfil"})
+    @Query("""
+            SELECT s FROM Sucursal s
+            WHERE s.activo = true AND s.categoria.categoria = :categoria
+              AND LOCATE(REPLACE(LOWER(:nombre), ' ', ''),
+                         REPLACE(LOWER(s.nombre), ' ', '')) > 0
+            """)
     List<Sucursal> findByNombreContainingIgnoreCaseAndCategoriaCategoriaAndActivoTrue(
-            String nombre, ECategoria categoria);
+            @Param("nombre") String nombre, @Param("categoria") ECategoria categoria);
 
 
     @EntityGraph(attributePaths = {"categoria", "fotoPerfil"})
-    List<Sucursal> findByNombreContainingIgnoreCaseAndActivoTrue(String nombre);
+    @Query("""
+            SELECT s FROM Sucursal s
+            WHERE s.activo = true
+              AND LOCATE(REPLACE(LOWER(:nombre), ' ', ''),
+                         REPLACE(LOWER(s.nombre), ' ', '')) > 0
+            """)
+    List<Sucursal> findByNombreContainingIgnoreCaseAndActivoTrue(@Param("nombre") String nombre);
 
 
     @EntityGraph(attributePaths = {"categoria", "fotoPerfil"})

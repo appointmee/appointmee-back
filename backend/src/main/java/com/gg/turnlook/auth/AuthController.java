@@ -43,6 +43,13 @@ public class AuthController {
         passwords.restablecer(request.token(), request.newPassword());
         return new MessageResponse("Contraseña restablecida. Iniciá sesión nuevamente.");
     }
+
+    @PostMapping("/auth/reset-password/validate")
+    public ResponseEntity<EstadoRecuperacionResponse> validarRecuperacion(
+            @Valid @RequestBody PasswordResetTokenRequest request) {
+        return ResponseEntity.ok().cacheControl(org.springframework.http.CacheControl.noStore())
+                .body(passwords.validarEnlace(request.token()));
+    }
     @PostMapping("/auth/change-password")
     public MessageResponse change(@AuthenticationPrincipal String email, @Valid @RequestBody ChangePasswordRequest request) {
         auth.cambiarPassword(email, request);

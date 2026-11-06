@@ -21,7 +21,7 @@ public class JwtFilter extends OncePerRequestFilter {
         // Public credential flows must work even when the browser sends an expired access token.
         String path = request.getServletPath();
         if (java.util.Set.of("/auth/login", "/auth/register", "/auth/refresh", "/auth/forgot-password",
-                "/auth/reset-password", "/auth/send-verification", "/auth/verify-email", "/auth/verification-status", "/auth/complete-verification", "/usuarios/inicio-sesion", "/usuarios/crear").contains(path)) {
+                "/auth/reset-password", "/auth/reset-password/validate", "/auth/send-verification", "/auth/verify-email", "/auth/verification-status", "/auth/complete-verification", "/usuarios/inicio-sesion", "/usuarios/crear").contains(path)) {
             chain.doFilter(request, response); return;
         }
         String header = request.getHeader("Authorization");

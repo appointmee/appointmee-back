@@ -211,7 +211,6 @@ public class SucursalController {
     }
 
 
-    @PreAuthorize("hasAnyRole('CLIENTE','EMPLEADO','EMPLEADOR','ADMINISTRADOR')")
     @GetMapping("/{sucursalId}/resenias")
     public ResponseEntity<?> verResenias(@PathVariable("sucursalId") Integer sucursalId) {
 
