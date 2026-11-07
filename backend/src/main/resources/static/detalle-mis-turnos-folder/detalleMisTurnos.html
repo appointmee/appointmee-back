@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Detalle del Turno</title>
+    <link rel="stylesheet" href="../recursos/style.css">
+    <link rel="icon" href="../recursos/content.png">
+</head>
+
+<body>
+
+
+    <div class="form-simple">
+        <h1>Detalles del Turno</h1>
+
+        <div id="detalle-turno-info" data-stagger>
+            <p style="font-family: var(--mono); color: var(--t3);">Cargando detalles...</p>
+        </div>
+
+        <hr style="border: 0; border-top: 1px solid var(--b); margin: 24px 0;">
+
+        <form id="resenia-form">
+            <h1>Calificar Servicio</h1>
+
+            <div class="form-group">
+                <label for="puntuacion">Puntuación (1 al 5):</label>
+                <select id="puntuacion" required>
+                    <option value="" disabled selected>Selecciona una nota</option>
+                    <option value="5">🐝🐝🐝🐝🐝 (Zarpado Sin Chucu)</option>
+                    <option value="4">🐝🐝🐝🐝 (Zarpado tranqui)</option>
+                    <option value="3">🐝🐝🐝 (MID)</option>
+                    <option value="2">🐝🐝 (Zafa)</option>
+                    <option value="1">🐝 (Devolve la plata)</option>
+                </select>
+            </div>
+
+            <div id="comentarios"></div>
+
+            <button type="submit" class="btn-submit" id="guardar">Guardar</button>
+        </form>
+
+        <button class="btn-cancel" id="btn-volver" data-no-cooldown style="margin-top:20px;width:100%;">Volver a Mis Turnos</button>
+    </div>
+
+    <script type="module" src="detalleMisTurnos.js"></script>
+    <script src="../recursos/script.js"></script>
+</body>
+
+</html>
