@@ -27,7 +27,7 @@ public class SolicitudEmpleadorController {
     /// ENDPOINTS
 
 
-    @PreAuthorize("!hasRole('ADMINISTRADOR') && hasAnyRole('CLIENTE', 'EMPLEADO', 'EMPLEADOR')")
+    @PreAuthorize("!hasAnyRole('ADMINISTRADOR', 'EMPLEADOR')")
     @PostMapping("/solicitar")
     public ResponseEntity<?> solicitarSerEmpleador(
             @Valid @RequestBody SolicitudEmpleadorCrearDTO solicitudEmpleador,
@@ -46,7 +46,7 @@ public class SolicitudEmpleadorController {
     }
 
 
-    @PreAuthorize("!hasRole('ADMINISTRADOR') && hasAnyRole('CLIENTE', 'EMPLEADO', 'EMPLEADOR')")
+    @PreAuthorize("hasRole('CLIENTE')")
     @GetMapping("/propias")
     public ResponseEntity<?> listarSolicitudesEmpleadorPropias(
             @AuthenticationPrincipal String userEmail) {
