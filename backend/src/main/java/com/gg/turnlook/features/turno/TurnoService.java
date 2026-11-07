@@ -192,9 +192,9 @@ public class TurnoService {
             throw new ForbiddenException("No tenes permisos");
         }
 
-        // Se conserva la regla actual: solo se cancelan turnos pendientes.
-        if (turno.getEstado() != EstadoTurno.PENDIENTE) {
-            throw new ConflictException("El turno no está pendiente");
+        // Se conserva la regla actual: solo se cancelan turnos confirmados.
+        if (turno.getEstado() != EstadoTurno.CONFIRMADO) {
+            throw new ConflictException("El turno no está confirmado");
         }
 
         turno.setEstado(EstadoTurno.CANCELADO);
@@ -210,10 +210,8 @@ public class TurnoService {
             throw new ForbiddenException("No tenes permisos");
         }
 
-        // Se admiten turnos pendientes existentes y los confirmados por el pago.
-        if (turno.getEstado() != EstadoTurno.PENDIENTE
-                && turno.getEstado() != EstadoTurno.CONFIRMADO) {
-            throw new ConflictException("El turno no está pendiente");
+        if (turno.getEstado() != EstadoTurno.CONFIRMADO) {
+            throw new ConflictException("El turno no está confirmado");
         }
 
         if (turno.getFechaHora().isAfter(LocalDateTime.now())) {
