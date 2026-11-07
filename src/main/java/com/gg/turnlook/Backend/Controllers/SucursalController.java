@@ -13,6 +13,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 
 @RestController
@@ -77,6 +78,16 @@ public class SucursalController {
 
         sucursalService.agregarImagenes(imagenes, sucursalId, empleadorEmail);
         return ResponseEntity.ok().body("Se agregaron las imagenes a la sucursal");
+    }
+
+
+    @PreAuthorize("hasRole('EMPLEADOR')")
+    @PostMapping("/{sucursalId}/imagenes/upload")
+    public ResponseEntity<?> subirImagen(@PathVariable("sucursalId") Integer sucursalId,
+                                         @RequestParam("file") MultipartFile archivo,
+                                         @AuthenticationPrincipal String empleadorEmail) {
+
+        return ResponseEntity.ok(sucursalService.subirImagen(sucursalId, archivo, empleadorEmail));
     }
 
 

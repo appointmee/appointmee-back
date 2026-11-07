@@ -22,21 +22,19 @@ public class Imagen {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
-
-    @Column(nullable = true)
+    @Column(nullable = true, length = 1000)
     private String url;
 
+    @Column(name = "public_id", length = 255)
+    private String publicId;
 
     @Column(name = "url_alt" ,nullable = false)
     private String urlAlt = "https://pimedelaar.org/wp-content/uploads/2023/05/no-image.png";
                                 // borrar esto dsp cuando g pase la suya O dejar esta
 
-
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "sucursal_id")
     private Sucursal sucursal;
-
-
 
     /// METODOS
 

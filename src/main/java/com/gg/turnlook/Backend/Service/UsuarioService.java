@@ -73,7 +73,7 @@ public class UsuarioService {
                 passEncoder.encode(u.getPassword()));
 
         user.getRoles().add(rol);
-        user.setFotoPerfil(imagenService.crearFotoPerfil(u.getFotoUrl()));
+        user.setFotoPerfil(imagenService.crearFotoPerfil(u.getFotoUrl(), u.getFotoPublicId()));
 
         return usRepo.save(user);
     }
@@ -130,7 +130,7 @@ public class UsuarioService {
         if (usuario.getPassword() != null) user.setPassword(passEncoder.encode(usuario.getPassword()));
 
         if (usuario.getFotoUrl() != null && !usuario.getFotoUrl().isBlank()) {
-            imagenService.cambiarFotoPerfilUsuario(user, usuario.getFotoUrl());
+            imagenService.cambiarFotoPerfilUsuario(user, usuario.getFotoUrl(), usuario.getFotoPublicId());
         }
 
         usRepo.save(user);

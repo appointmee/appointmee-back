@@ -22,6 +22,7 @@ import com.gg.turnlook.Backend.Repository.CategoriaRepository;
 import com.gg.turnlook.Backend.Repository.SucursalRepository;
 import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 import java.util.Objects;
@@ -85,7 +86,7 @@ public class SucursalService {
                 sucursal.getHoraApertura(), sucursal.getHoraCierre(),
                 cat, empleador);
 
-        suc.setFotoPerfil(imagenService.crearFotoPerfil(sucursal.getFotoUrl()));
+        suc.setFotoPerfil(imagenService.crearFotoPerfil(sucursal.getFotoUrl(), sucursal.getFotoPublicId()));
 
         sucRepo.save(suc);
     }
@@ -130,7 +131,7 @@ public class SucursalService {
 
         // ver si valida bien como ultimo dsp
         if (sucursal.getFotoUrl() != null && !sucursal.getFotoUrl().isBlank()) {
-            imagenService.cambiarFotoPerfilSucursal(suc, sucursal.getFotoUrl());
+            imagenService.cambiarFotoPerfilSucursal(suc, sucursal.getFotoUrl(), sucursal.getFotoPublicId());
         }
 
         sucRepo.save(suc);
@@ -170,6 +171,18 @@ public class SucursalService {
             imagenService.crearImagenSucursal(sucursal, imagen);
         }
 
+    }
+
+
+    public ImagenResponseDTO subirImagen(Integer sucursalId, MultipartFile archivo, String empleadorEmail) {
+
+        Sucursal sucursal = listarSucursalPorId(sucursalId);
+
+        if (!esEmpleadorAca(sucursal, empleadorEmail)) {
+            throw new ForbiddenException("No tenes permisos");
+        }
+
+        return imagenService.subirImagenSucursal(sucursal, archivo);
     }
 
 
