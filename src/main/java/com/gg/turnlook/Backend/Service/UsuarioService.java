@@ -11,6 +11,7 @@ import com.gg.turnlook.Backend.Excepciones.UnauthorizedException;
 import com.gg.turnlook.Backend.Model.Rol;
 import com.gg.turnlook.Backend.Model.Usuario;
 import com.gg.turnlook.Backend.Repository.UsuarioRepository;
+import jakarta.validation.Valid;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -250,6 +251,9 @@ public class UsuarioService {
     }
 
 
+    public void recuperarCuenta(@Valid LoginDTO login) {
+        
+    }
 }
 
 

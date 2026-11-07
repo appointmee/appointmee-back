@@ -7,6 +7,7 @@ import com.gg.turnlook.Backend.Security.JwtFilter;
 import com.gg.turnlook.Backend.Security.CustomUserDetailsService;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
@@ -85,6 +86,12 @@ public class SecurityConfig {
                                 "/swagger-ui/**",
                                 "/swagger-ui.html")
                         .permitAll()
+                        .requestMatchers(HttpMethod.GET,
+                                "/sucursales/listar",
+                                "/sucursales/listar/filtrar",
+                                "/sucursales/categorias",
+                                "/sucursales/*")
+                        .permitAll()
                         .anyRequest().authenticated())
 
                 .exceptionHandling(e -> e
@@ -100,12 +107,7 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
 
-        config.setAllowedOrigins(List.of(
-                "http://127.0.0.1:3000",
-                "http://localhost:3000",
-                "http://127.0.0.1:8080",
-                "http://localhost:8080",
-                "https://appointmee-vcs2.onrender.com"));
+        config.setAllowedOriginPatterns(List.of("*"));
 
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
