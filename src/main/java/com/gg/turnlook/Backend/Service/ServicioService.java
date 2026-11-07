@@ -61,7 +61,7 @@ public class ServicioService {
                 servicio.getPrecio(), sucursal
         );
 
-        serv.setFotoPerfil(imagenService.crearFotoPerfil(servicio.getFotoUrl()));
+        serv.setFotoPerfil(imagenService.crearFotoPerfil(servicio.getFotoUrl(), servicio.getFotoPublicId()));
 
         servRepo.save(serv);
     }
@@ -89,7 +89,7 @@ public class ServicioService {
         }
 
         if(servicio.getFotoUrl() != null && !servicio.getFotoUrl().isBlank()){
-            imagenService.cambiarFotoPerfilServicio(servOld,  servicio.getFotoUrl());
+            imagenService.cambiarFotoPerfilServicio(servOld,  servicio.getFotoUrl(), servicio.getFotoPublicId());
         }
 
         servRepo.save(servOld);
