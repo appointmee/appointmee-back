@@ -130,7 +130,8 @@ public class ServicioService {
 
         return servicios.stream()
                 .map(s -> new ServicioMiniDTO(s.getId(), s.getNombre(),
-                        s.getDuracion(), s.getFotoPerfil().getFotoValida(),
+                        s.getDuracion(), s.getPrecio(), s.getDescripcion(),
+                        s.getFotoPerfil().getFotoValida(),
                         puntuacionDe(puntuaciones.get(s.getId())),
                         cantidadDe(puntuaciones.get(s.getId())))
                 )
