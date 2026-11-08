@@ -77,4 +77,14 @@ public class EmailService implements CanalEnvioService {
                                 + " minutos. Si no lo solicitaste, ignorá este correo."))
                 .retrieve().toBodilessEntity();
     }
+
+    public void enviarAvisoCambioPassword(String destinatario) {
+        cliente.post().uri("/emails").contentType(MediaType.APPLICATION_JSON)
+                .body(Map.of("from", remitente, "to", List.of(destinatario),
+                        "subject", "Tu contraseña se actualizó - AppointMee",
+                        "text", "La contraseña de tu cuenta de AppointMee se actualizó correctamente."
+                                + "\nCerramos tus sesiones anteriores. Volvé a iniciar sesión con tu nueva contraseña."
+                                + "\nSi no realizaste este cambio, recuperá tu cuenta desde la aplicación y contactá al soporte."))
+                .retrieve().toBodilessEntity();
+    }
 }

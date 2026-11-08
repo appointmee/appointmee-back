@@ -20,6 +20,7 @@ public class PasswordResetService {
     private final com.gg.turnlook.auth.BloqueoUsuario bloqueo;
     private final PasswordEncoder encoder;
     private final EmailService email;
+    private final org.springframework.context.ApplicationEventPublisher events;
     @Value("${auth.password-reset-ttl-seconds:900}") private long ttl;
     @Value("${auth.password-reset-url:http://localhost:4200/reset-password}") private String resetUrl;
     @Transactional
@@ -52,6 +53,7 @@ public class PasswordResetService {
         usuario.setCredencialesVersion(usuario.getCredencialesVersion() + 1);
         refreshTokens.revocarPorUsuario(usuario.getId());
         repository.revocarPorUsuario(usuario.getId());
+        events.publishEvent(new PasswordChangedEvent(usuario.getEmail()));
     }
 
     @Transactional(readOnly = true)

@@ -114,6 +114,7 @@ class AuthIntegrationTest {
         assertTrue(passwords.validarEnlace(token).expiresInSeconds() > 0);
         assertTrue(passwords.validarEnlace(token).valido()); // Consultarlo no lo consume.
         passwords.restablecer(token, "NuevaPassword123!");
+        verify(email).enviarAvisoCambioPassword(usuario.getEmail());
         assertFalse(passwords.validarEnlace(token).valido());
         assertTrue(encoder.matches("NuevaPassword123!", usuarios.findById(usuario.getId()).orElseThrow().getPassword()));
         assertEquals(1, usuarios.findById(usuario.getId()).orElseThrow().getCredencialesVersion());
@@ -122,8 +123,53 @@ class AuthIntegrationTest {
     }
     @Test void cambioExigePasswordActualYRevocaRefresh() {
         var sesion = login();
-        assertThrows(UnauthorizedException.class, () -> auth.cambiarPassword(usuario.getEmail(), new ChangePasswordRequest("incorrecta", "NuevaPassword123!")));
+        assertThrows(BadRequestException.class, () -> auth.cambiarPassword(usuario.getEmail(), new ChangePasswordRequest("incorrecta", "NuevaPassword123!")));
         auth.cambiarPassword(usuario.getEmail(), new ChangePasswordRequest(PASSWORD, "NuevaPassword123!"));
+        assertThrows(UnauthorizedException.class, () -> auth.renovar(sesion.getRefreshToken()));
+        verify(email).enviarAvisoCambioPassword(usuario.getEmail());
+    }
+
+    @Test void passwordIgualOActualIncorrectaNoModificanNiEnvianAviso() {
+        assertThrows(BadRequestException.class, () -> auth.cambiarPassword(usuario.getEmail(), new ChangePasswordRequest(PASSWORD, PASSWORD)));
+        assertThrows(BadRequestException.class, () -> auth.cambiarPassword(usuario.getEmail(), new ChangePasswordRequest("incorrecta", "NuevaPassword123!")));
+        assertTrue(encoder.matches(PASSWORD, usuarios.findById(usuario.getId()).orElseThrow().getPassword()));
+        verify(email, never()).enviarAvisoCambioPassword(anyString());
+    }
+
+    @Test void endpointCambioValidaPasswordSinCerrarLaSesionPorUnDatoIncorrecto() throws Exception {
+        var sesion = login();
+        var client = java.net.http.HttpClient.newHttpClient();
+        var request = java.net.http.HttpRequest.newBuilder(java.net.URI.create("http://localhost:" + port + "/auth/change-password"))
+                .header("Authorization", "Bearer " + sesion.getToken()).header("Content-Type", "application/json")
+                .POST(java.net.http.HttpRequest.BodyPublishers.ofString("{\"currentPassword\":\"incorrecta\",\"newPassword\":\"NuevaPassword123!\"}")).build();
+        var response = client.send(request, java.net.http.HttpResponse.BodyHandlers.ofString());
+        assertEquals(400, response.statusCode());
+        assertTrue(response.body().contains("CURRENT_PASSWORD_INVALID"));
+        verify(email, never()).enviarAvisoCambioPassword(anyString());
+        assertDoesNotThrow(() -> auth.renovar(sesion.getRefreshToken()));
+        var debil = java.net.http.HttpRequest.newBuilder(java.net.URI.create("http://localhost:" + port + "/auth/change-password"))
+                .header("Authorization", "Bearer " + sesion.getToken()).header("Content-Type", "application/json")
+                .POST(java.net.http.HttpRequest.BodyPublishers.ofString("{\"currentPassword\":\"" + PASSWORD + "\",\"newPassword\":\"simple\"}")).build();
+        assertEquals(400, client.send(debil, java.net.http.HttpResponse.BodyHandlers.ofString()).statusCode());
+        assertTrue(encoder.matches(PASSWORD, usuarios.findById(usuario.getId()).orElseThrow().getPassword()));
+    }
+
+    @Test void avisoSeEnviaSoloDespuesDelCommitYNoEnRollback() {
+        new TransactionTemplate(transactionManager).executeWithoutResult(status -> {
+            auth.cambiarPassword(usuario.getEmail(), new ChangePasswordRequest(PASSWORD, "NuevaPassword123!"));
+            verify(email, never()).enviarAvisoCambioPassword(anyString());
+            status.setRollbackOnly();
+        });
+        verify(email, never()).enviarAvisoCambioPassword(anyString());
+        assertTrue(encoder.matches(PASSWORD, usuarios.findById(usuario.getId()).orElseThrow().getPassword()));
+    }
+
+    @Test void falloDelCorreoNoRevierteCambioNiReactivaLaSesion() {
+        var sesion = login();
+        doThrow(new org.springframework.web.client.RestClientException("Proveedor no disponible"))
+                .when(email).enviarAvisoCambioPassword(anyString());
+        assertDoesNotThrow(() -> auth.cambiarPassword(usuario.getEmail(), new ChangePasswordRequest(PASSWORD, "NuevaPassword123!")));
+        assertTrue(encoder.matches("NuevaPassword123!", usuarios.findById(usuario.getId()).orElseThrow().getPassword()));
         assertThrows(UnauthorizedException.class, () -> auth.renovar(sesion.getRefreshToken()));
     }
     @Test void correoInexistenteNoEnviaEmail() {

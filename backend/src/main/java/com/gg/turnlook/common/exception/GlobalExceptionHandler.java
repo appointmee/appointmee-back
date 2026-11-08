@@ -87,6 +87,9 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(BadRequestException.class)
     public ResponseEntity<?> handleBadRequest(BadRequestException e){
+        if (e instanceof PasswordChangeException change) {
+            return ResponseEntity.badRequest().body(Map.of("code", change.getCode(), "message", change.getMessage()));
+        }
         return ResponseEntity.status(400).body(e.getMessage());
     }
 
