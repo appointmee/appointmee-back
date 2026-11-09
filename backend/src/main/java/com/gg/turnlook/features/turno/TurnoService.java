@@ -27,6 +27,7 @@ import com.gg.turnlook.features.usuario.rol.ERol;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.stream.Collectors;
 import org.springframework.data.domain.PageRequest;
@@ -45,6 +46,10 @@ public class TurnoService {
     // cambiar el contrato de la API, pero se evita traer historiales completos.
     private static final int LIMITE_TURNOS_CLIENTE = 200;
     private static final int LIMITE_TURNOS_SUCURSAL = 500;
+
+    // Ventana de reservas: dias hacia adelante y granularidad de los slots.
+    private static final int DIAS_DISPONIBILIDAD = 21;
+    private static final int INTERVALO_MINUTOS = 30;
 
 
     private final TurnoRepository turnoRepo;
@@ -81,6 +86,8 @@ public class TurnoService {
         Usuario cliente = usuarioService.listarUsuarioPorEmail(clienteEmail);
         Servicio servicio = servicioService.listarServicioPorId(turno.getServicioId());
 
+        validarHorarioReserva(turno.getFechaHora(), servicio);
+
         if (empleado.getRoles().stream().noneMatch(r -> r.getRol() == ERol.EMPLEADO ||
                 r.getRol() == ERol.EMPLEADOR)) {
             throw new BadRequestException("El usuario elegido no puede atender turnos");
@@ -108,6 +115,34 @@ public class TurnoService {
     }
 
 
+    private void validarHorarioReserva(LocalDateTime fechaHora, Servicio servicio) {
+
+        if (fechaHora.toLocalDate().isAfter(LocalDate.now().plusDays(DIAS_DISPONIBILIDAD - 1))) {
+            throw new BadRequestException("Solo se pueden reservar turnos dentro de los próximos "
+                    + DIAS_DISPONIBILIDAD + " días");
+        }
+
+        Sucursal sucursal = servicio.getSucursal();
+        LocalTime inicio = fechaHora.toLocalTime();
+        LocalTime fin = inicio.plusMinutes(servicio.getDuracion());
+
+        if (inicio.isBefore(sucursal.getHoraApertura())
+                || fin.isAfter(sucursal.getHoraCierre())
+                || fin.isBefore(inicio)) {
+            throw new BadRequestException("El horario está fuera del horario de la sucursal");
+        }
+
+        long minutosDesdeApertura = ChronoUnit.MINUTES.between(
+                sucursal.getHoraApertura(), inicio);
+
+        if (minutosDesdeApertura % INTERVALO_MINUTOS != 0
+                || inicio.getSecond() != 0
+                || inicio.getNano() != 0) {
+            throw new BadRequestException("El horario no es válido para reservar");
+        }
+    }
+
+
     public List<DisponibilidadDTO> verDisponibilidad(Integer empleadoId, Integer servicioId) {
 
         Usuario empleado = usuarioService.listarUsuarioPorId(empleadoId);
@@ -118,16 +153,19 @@ public class TurnoService {
             throw new BadRequestException("El empleado no pertenece a la sucursal");
         }
 
-        LocalDateTime iSemana = LocalDate.now().atStartOfDay();
-        LocalDateTime fSemana = LocalDate.now().plusDays(6).atTime(LocalTime.MAX);
+        LocalDate hoy = LocalDate.now();
+        LocalDateTime ahora = LocalDateTime.now();
+
+        LocalDateTime desde = hoy.atStartOfDay();
+        LocalDateTime hasta = hoy.plusDays(DIAS_DISPONIBILIDAD - 1).atTime(LocalTime.MAX);
         List<TurnoDisponibilidadDTO> turnos = turnoRepo.findDisponibilidadPorEmpleado(
-                empleado, iSemana, fSemana, EstadoTurno.CANCELADO);
+                empleado, desde, hasta, EstadoTurno.CANCELADO);
         Map<LocalDate, List<TurnoDisponibilidadDTO>> turnosPorDia = turnos.stream()
                 .collect(Collectors.groupingBy(t -> t.getFechaHora().toLocalDate()));
 
         Map<LocalDate, List<LocalTime>> disponibilidad = new LinkedHashMap<>();
-        for (int i = 0; i < 7; i++) {
-            LocalDate dia = LocalDate.now().plusDays(i);
+        for (int i = 0; i < DIAS_DISPONIBILIDAD; i++) {
+            LocalDate dia = hoy.plusDays(i);
 
             // si la sucursal no abre ese dia no hay horarios disponibles
             if (!sucursal.abreElDia(dia.getDayOfWeek())) {
@@ -144,8 +182,8 @@ public class TurnoService {
 
                 LocalDateTime inicioNuevo = LocalDateTime.of(dia, apertura);
 
-                if (inicioNuevo.isBefore(LocalDateTime.now())) {
-                    apertura = apertura.plusMinutes(30);
+                if (inicioNuevo.isBefore(ahora)) {
+                    apertura = apertura.plusMinutes(INTERVALO_MINUTOS);
                     continue;
                 }
 
@@ -153,7 +191,7 @@ public class TurnoService {
                     horariosDisponibles.add(apertura);
                 }
 
-                apertura = apertura.plusMinutes(30);
+                apertura = apertura.plusMinutes(INTERVALO_MINUTOS);
             }
             disponibilidad.put(dia, horariosDisponibles);
         }
