@@ -135,7 +135,10 @@ public class ImagenCloudinaryService {
         try {
             URI uri = URI.create(url);
             String ruta = "/" + cloudName + "/image/upload/";
+            // Admite transformaciones opcionales de Cloudinary entre image/upload/ y el public_id
+            // (ej. /image/upload/w_200,h_200,c_fill/appointmee/perfiles/foto.jpg)
             String patron = Pattern.quote(ruta) + "(?:v[0-9]+/)?"
+                    + "(?:[a-z0-9_]+(?:,[a-z0-9_]+)*/)*"
                     + Pattern.quote(publicId) + "\\.(?:jpg|jpeg|png|webp|gif)";
             if (!esImagenPropia(publicId) || url.length() > 1000
                     || !"https".equals(uri.getScheme()) || !"res.cloudinary.com".equals(uri.getHost())
