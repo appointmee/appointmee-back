@@ -19,13 +19,16 @@ class ImagenControllerTest {
 
     private ImagenCloudinaryService cloudinaryService;
     private ImagenPendienteService pendienteService;
+    private ImagenService imagenService;
     private MockMvc mockMvc;
 
     @BeforeEach
     void configurar() {
         cloudinaryService = mock(ImagenCloudinaryService.class);
         pendienteService = mock(ImagenPendienteService.class);
-        mockMvc = MockMvcBuilders.standaloneSetup(new ImagenController(cloudinaryService, pendienteService)).build();
+        imagenService = mock(ImagenService.class);
+        mockMvc = MockMvcBuilders.standaloneSetup(
+                new ImagenController(cloudinaryService, pendienteService, imagenService)).build();
     }
 
     @Test
