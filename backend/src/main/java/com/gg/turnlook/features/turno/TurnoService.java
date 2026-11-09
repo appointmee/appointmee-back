@@ -103,7 +103,8 @@ public class TurnoService {
 
         LocalDate dia = turno.getFechaHora().toLocalDate();
         List<TurnoDisponibilidadDTO> turnosDia = turnoRepo.findDisponibilidadPorEmpleado(
-                empleado, dia.atStartOfDay(), dia.atTime(LocalTime.MAX), EstadoTurno.CANCELADO);
+                empleado, dia.atStartOfDay(), dia.atTime(LocalTime.MAX),
+                List.of(EstadoTurno.CANCELADO, EstadoTurno.PAGO_RECHAZADO));
 
         if (!estaDisponible(turno.getFechaHora(), servicio.getDuracion(), turnosDia)) {
             throw new ConflictException("Ya hay un turno registrado en ese horario");
@@ -159,7 +160,8 @@ public class TurnoService {
         LocalDateTime desde = hoy.atStartOfDay();
         LocalDateTime hasta = hoy.plusDays(DIAS_DISPONIBILIDAD - 1).atTime(LocalTime.MAX);
         List<TurnoDisponibilidadDTO> turnos = turnoRepo.findDisponibilidadPorEmpleado(
-                empleado, desde, hasta, EstadoTurno.CANCELADO);
+                empleado, desde, hasta,
+                List.of(EstadoTurno.CANCELADO, EstadoTurno.PAGO_RECHAZADO));
         Map<LocalDate, List<TurnoDisponibilidadDTO>> turnosPorDia = turnos.stream()
                 .collect(Collectors.groupingBy(t -> t.getFechaHora().toLocalDate()));
 

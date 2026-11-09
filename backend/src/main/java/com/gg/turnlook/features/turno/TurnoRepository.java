@@ -39,13 +39,13 @@ public interface TurnoRepository extends JpaRepository<Turno, Integer> {
                 FROM Turno t
                 WHERE t.empleado = :empleado
                     AND t.fechaHora BETWEEN :inicioDia AND :finDia
-                    AND t.estado <> :estadoTurno
+                    AND t.estado NOT IN :estadosExcluidos
             """)
     List<TurnoDisponibilidadDTO> findDisponibilidadPorEmpleado(
             @Param("empleado") Usuario empleado,
             @Param("inicioDia") LocalDateTime inicioDia,
             @Param("finDia") LocalDateTime finDia,
-            @Param("estadoTurno") EstadoTurno estadoTurno);
+            @Param("estadosExcluidos") Collection<EstadoTurno> estadosExcluidos);
 
 
     // Consulta anterior a la optimización. Reemplazada por findMiniByServicioSucursalIdAndEstado.

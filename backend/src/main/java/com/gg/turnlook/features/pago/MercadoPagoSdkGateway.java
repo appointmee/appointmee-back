@@ -40,7 +40,8 @@ public class MercadoPagoSdkGateway implements MercadoPagoGateway {
         PreferenceRequest request = PreferenceRequest.builder()
                 .items(List.of(item))
                 .externalReference(turno.getId().toString())
-                .notificationUrl("https://appointmee-vcs2.onrender.com/pagos/webhook")
+                // IMPORTANTE: si cambia la URL pública del backend, actualizar esta notificationUrl.
+                .notificationUrl("https://tiny-files-lead.loca.lt/pagos/webhook")
                 .build();
 
         Preference preference = new PreferenceClient().create(request);
