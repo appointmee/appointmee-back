@@ -201,8 +201,12 @@ public class ImagenService {
         validarUrlParaPublicId(url, publicIdNuevo);
         String publicIdAnterior = imagen.getPublicId();
 
-        if (publicIdNuevo == null && url.equals(imagen.getUrl())) {
-            publicIdNuevo = publicIdAnterior;
+        if (publicIdNuevo == null) {
+            if (url.equals(imagen.getUrl())) {
+                publicIdNuevo = publicIdAnterior;
+            } else {
+                throw new BadRequestException("Se requiere el public_id para cambiar la imagen");
+            }
         }
 
         imagen.setUrl(url);
