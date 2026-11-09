@@ -60,6 +60,15 @@ public class ImagenController {
         return ResponseEntity.noContent().build();
     }
 
+    @PreAuthorize("isAuthenticated()")
+    @DeleteMapping("/huérfana")
+    public ResponseEntity<Void> eliminarHuérfana(
+            @RequestParam String publicId
+    ) {
+        imagenService.eliminarImagenHuérfana(publicId);
+        return ResponseEntity.noContent().build();
+    }
+
     @ExceptionHandler({MethodArgumentTypeMismatchException.class, MissingServletRequestParameterException.class,
             MissingServletRequestPartException.class, HttpMessageNotReadableException.class})
     public ResponseEntity<String> datosInvalidos(Exception error) {
