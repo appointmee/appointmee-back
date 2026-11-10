@@ -54,7 +54,7 @@ public class ImagenCloudinaryService {
                 nombreBase = nombreBase.substring(0, punto);
             }
             String nombreSanitizado = nombreBase.replaceAll("[^A-Za-z0-9_-]", "_");
-            String publicId = carpeta + "/" + nombreSanitizado;
+            String publicIdDeseado = carpeta + "/" + nombreSanitizado;
             Map<?, ?> resultado = cloudinary.uploader().upload(
                     contenido,
                     ObjectUtils.asMap(
@@ -63,7 +63,7 @@ public class ImagenCloudinaryService {
                             "folder", carpeta,
                             "asset_folder", carpeta,
                             "use_asset_folder_as_public_id_prefix", true,
-                            "public_id", publicId,
+                            "public_id", publicIdDeseado,
                             "resource_type", "image",
                             "allowed_formats", Arrays.asList("jpg", "jpeg", "png", "webp", "gif"),
                             "max_file_size", TAMANIO_MAXIMO

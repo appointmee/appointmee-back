@@ -24,11 +24,14 @@ public class ImagenController {
 
     private final ImagenCloudinaryService imagenCloudinaryService;
     private final ImagenPendienteService imagenPendienteService;
+    private final ImagenService imagenService;
 
     public ImagenController(ImagenCloudinaryService imagenCloudinaryService,
-                            ImagenPendienteService imagenPendienteService) {
+                            ImagenPendienteService imagenPendienteService,
+                            ImagenService imagenService) {
         this.imagenCloudinaryService = imagenCloudinaryService;
         this.imagenPendienteService = imagenPendienteService;
+        this.imagenService = imagenService;
     }
 
     @PreAuthorize("isAuthenticated()")
