@@ -128,6 +128,7 @@ public class SecurityConfig {
                 "http://localhost:4200",
                 "http://127.0.0.1:8080",
                 "http://localhost:8080",
+                "https://appointmee-front-production.up.railway.app",
                 "https://appointmee-vcs2.onrender.com"));
 
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
