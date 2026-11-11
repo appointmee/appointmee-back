@@ -66,6 +66,18 @@ public interface SucursalRepository extends JpaRepository<Sucursal, Integer> {
     List<Sucursal> findSucursalesDondeEsta(String email);
 
 
+    // Sucursales donde el usuario es EMPLEADO (no empleador). Se resuelve en la
+    // base con EXISTS para no cargar la coleccion completa de empleados.
+    @EntityGraph(attributePaths = {"categoria", "fotoPerfil"})
+    @Query("""
+                SELECT s FROM Sucursal s
+                WHERE EXISTS (
+                    SELECT 1 FROM s.empleados e WHERE e.email = :email
+                )
+            """)
+    List<Sucursal> findSucursalesDondeEsEmpleado(@Param("email") String email);
+
+
     // Variante usada por las validaciones de permisos: trae el empleador en la
     // misma query y evita el lazy load al comparar su email.
     @EntityGraph(attributePaths = {"empleador"})
