@@ -20,10 +20,26 @@ import org.springframework.data.repository.query.Param;
 public interface TurnoRepository extends JpaRepository<Turno, Integer> {
 
     @Modifying
-    @Query("update Turno t set t.estado = :nuevoEstado where t.id = :turnoId and t.estado in :estadosActuales")
+    @Query("update Turno t set t.estado = :nuevoEstado, t.fechaModificacionEstado = CURRENT_TIMESTAMP where t.id = :turnoId and t.estado in :estadosActuales")
     int actualizarEstadoSiEs(@Param("turnoId") Integer turnoId,
                              @Param("estadosActuales") Collection<EstadoTurno> estadosActuales,
                              @Param("nuevoEstado") EstadoTurno nuevoEstado);
+
+
+    // Recupera de forma eficiente los turnos PENDIENTE cuya ultima modificacion
+    // de estado (o fecha de creacion si no tiene) es anterior o igual al limite.
+    @Query("SELECT t FROM Turno t WHERE t.estado = :estado AND COALESCE(t.fechaModificacionEstado, t.fechaReserva) <= :fechaLimite")
+    List<Turno> findPendientesVencidos(@Param("estado") EstadoTurno estado,
+                                       @Param("fechaLimite") LocalDateTime fechaLimite);
+
+
+    // Cancelacion masiva condicional: solo afecta turnos que sigan PENDIENTE y
+    // vencidos al momento de ejecutar la actualizacion.
+    @Modifying
+    @Query("update Turno t set t.estado = :nuevoEstado, t.fechaModificacionEstado = CURRENT_TIMESTAMP where t.estado = :estadoActual and COALESCE(t.fechaModificacionEstado, t.fechaReserva) <= :fechaLimite")
+    int cancelarTurnosPendientesVencidos(@Param("estadoActual") EstadoTurno estadoActual,
+                                          @Param("nuevoEstado") EstadoTurno nuevoEstado,
+                                          @Param("fechaLimite") LocalDateTime fechaLimite);
 
 
     // Consulta anterior a la optimización. Reemplazada por findDisponibilidadPorEmpleado.

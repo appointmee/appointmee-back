@@ -36,6 +36,9 @@ public class Turno {
     @Column(name = "fecha_reserva", nullable = false)
     private LocalDateTime fechaReserva;
 
+    @Column(name = "fecha_modificacion_estado")
+    private LocalDateTime fechaModificacionEstado;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private EstadoTurno estado = EstadoTurno.PENDIENTE;
@@ -64,7 +67,9 @@ public class Turno {
 
     @PrePersist
     public void prePersist() {
-        this.fechaReserva = LocalDateTime.now();
+        if (this.fechaReserva == null) {
+            this.fechaReserva = LocalDateTime.now();
+        }
     }
 
 

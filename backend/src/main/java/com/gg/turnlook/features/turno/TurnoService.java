@@ -111,6 +111,8 @@ public class TurnoService {
         }
 
         Turno turnoFinal = new Turno(turno.getFechaHora(), cliente, empleado, servicio);
+        turnoFinal.setEstado(EstadoTurno.PENDIENTE);
+        turnoFinal.setFechaModificacionEstado(LocalDateTime.now());
 
         turnoRepo.save(turnoFinal);
     }
@@ -238,6 +240,7 @@ public class TurnoService {
         }
 
         turno.setEstado(EstadoTurno.CANCELADO);
+        turno.setFechaModificacionEstado(LocalDateTime.now());
         turnoRepo.save(turno);
     }
 
@@ -259,9 +262,37 @@ public class TurnoService {
         }
 
         turno.setEstado(EstadoTurno.REALIZADO);
+        turno.setFechaModificacionEstado(LocalDateTime.now());
         turnoRepo.save(turno);
     }
 
+
+    @Transactional
+    public int cancelarTurnosPendientesVencidos() {
+        LocalDateTime limite = LocalDateTime.now().minusHours(2);
+        List<Turno> vencidos = turnoRepo.findPendientesVencidos(EstadoTurno.PENDIENTE, limite);
+        int cancelados = 0;
+        for (Turno turno : vencidos) {
+            cancelados += turnoRepo.actualizarEstadoSiEs(
+                    turno.getId(), List.of(EstadoTurno.PENDIENTE), EstadoTurno.CANCELADO);
+        }
+        return cancelados;
+    }
+
+    @Transactional
+    public int cancelarTurnosPendientesExpirados() {
+        return cancelarTurnosPendientesVencidos();
+    }
+
+    @Transactional
+    public int cancelarTurnosVencidos() {
+        return cancelarTurnosPendientesVencidos();
+    }
+
+    @Transactional
+    public int procesarTurnosPendientesVencidos() {
+        return cancelarTurnosPendientesVencidos();
+    }
 
     public List<TurnoMiniDTO> listarTurnosPorSucursal(
             Integer sucursalId, String empleadorEmail, EstadoTurno estadoTurno) {
@@ -387,9 +418,8 @@ public class TurnoService {
             throw new ForbiddenException("No tenes permisos");
         }
 
-        if (turno.getEstado() != EstadoTurno.REALIZADO &&
-                turno.getEstado() != EstadoTurno.CANCELADO) {
-            throw new ConflictException("Solo se pueden reseñar turnos finalizados");
+        if (turno.getEstado() != EstadoTurno.REALIZADO) {
+            throw new ConflictException("Solo se pueden reseñar turnos realizados");
         }
 
         if (turno.getResenia() != null) {
