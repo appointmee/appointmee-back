@@ -257,8 +257,11 @@ public class TurnoService {
             throw new ConflictException("El turno no está confirmado");
         }
 
-        if (turno.getFechaHora().isAfter(LocalDateTime.now())) {
-            throw new ConflictException("El turno no pasó todavia");
+        LocalDateTime finEstimado = turno.getFechaHora()
+                .plusMinutes(turno.getServicio().getDuracion());
+
+        if (LocalDateTime.now().isBefore(finEstimado)) {
+            throw new ConflictException("El turno no finalizo todavia");
         }
 
         turno.setEstado(EstadoTurno.REALIZADO);
