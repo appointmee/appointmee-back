@@ -12,8 +12,10 @@ CREATE TABLE IF NOT EXISTS public.password_reset_tokens (
     usuario_id INTEGER NOT NULL REFERENCES public.usuarios(id) ON DELETE CASCADE,
     token_hash VARCHAR(64) NOT NULL UNIQUE,
     fecha_vencimiento TIMESTAMPTZ NOT NULL,
-    fecha_uso TIMESTAMPTZ
+    fecha_uso TIMESTAMPTZ,
+    intentos_fallidos INTEGER NOT NULL DEFAULT 0
 );
+ALTER TABLE public.password_reset_tokens ADD COLUMN IF NOT EXISTS intentos_fallidos INTEGER NOT NULL DEFAULT 0;
 CREATE INDEX IF NOT EXISTS idx_password_reset_usuario ON public.password_reset_tokens(usuario_id);
 -- Only the trusted Spring backend DB connection should access these hashes.
 ALTER TABLE public.refresh_tokens ENABLE ROW LEVEL SECURITY;

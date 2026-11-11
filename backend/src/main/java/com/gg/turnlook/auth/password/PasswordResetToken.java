@@ -18,4 +18,6 @@ public class PasswordResetToken {
     @Column(name = "fecha_vencimiento", nullable = false)
     private Instant fechaVencimiento;
     @Column(name = "fecha_uso") private Instant fechaUso;
+    @Column(name = "intentos_fallidos", nullable = false)
+    private int intentosFallidos;
 }

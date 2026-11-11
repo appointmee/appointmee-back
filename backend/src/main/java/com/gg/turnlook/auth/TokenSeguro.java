@@ -13,6 +13,9 @@ public final class TokenSeguro {
         RANDOM.nextBytes(bytes);
         return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
     }
+    public static String generarCodigo() {
+        return String.format(java.util.Locale.ROOT, "%06d", RANDOM.nextInt(1_000_000));
+    }
     public static String hash(String token) {
         try {
             return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256")

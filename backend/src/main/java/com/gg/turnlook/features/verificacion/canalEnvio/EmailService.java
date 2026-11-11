@@ -78,6 +78,28 @@ public class EmailService implements CanalEnvioService {
                 .retrieve().toBodilessEntity();
     }
 
+    public void enviarCodigoRecuperacion(String destinatario, String codigo, long minutos) {
+        String html = """
+                <!doctype html><html lang="es"><body style="font-family:Arial,sans-serif;color:#202020">
+                  <main style="max-width:480px;margin:0 auto;padding:32px">
+                    <p style="font-size:18px;font-weight:bold">AppointMee</p>
+                    <h1>Restablecé tu contraseña</h1>
+                    <p>Ingresá este código de 6 dígitos para continuar:</p>
+                    <p style="font-size:32px;font-weight:bold;letter-spacing:8px">%s</p>
+                    <p>El código vence en %d minutos y solo puede usarse una vez.</p>
+                    <p>Si no solicitaste este cambio, ignorá este correo.</p>
+                  </main>
+                </body></html>
+                """.formatted(codigo, minutos);
+        cliente.post().uri("/emails").contentType(MediaType.APPLICATION_JSON)
+                .body(Map.of("from", remitente, "to", List.of(destinatario),
+                        "subject", "Código para recuperar contraseña - AppointMee",
+                        "html", html,
+                        "text", "Tu código para restablecer la contraseña es: " + codigo
+                                + "\nVence en " + minutos + " minutos. Si no lo solicitaste, ignorá este correo."))
+                .retrieve().toBodilessEntity();
+    }
+
     public void enviarAvisoCambioPassword(String destinatario) {
         cliente.post().uri("/emails").contentType(MediaType.APPLICATION_JSON)
                 .body(Map.of("from", remitente, "to", List.of(destinatario),

@@ -29,19 +29,36 @@ public class AuthController {
         auth.logout(email); return new MessageResponse("Sesión cerrada");
     }
     @PostMapping("/auth/forgot-password")
-    public MessageResponse forgot(@Valid @RequestBody ForgotPasswordRequest request) {
+    public ResponseEntity<MessageResponse> forgot(@Valid @RequestBody ForgotPasswordRequest request) {
+        boolean permitido;
         try {
-            passwords.solicitar(request.email());
+            permitido = passwords.solicitarCodigo(request.email());
         } catch (org.springframework.web.client.RestClientException e) {
             // Do not expose whether a recipient exists when the email provider fails.
             org.slf4j.LoggerFactory.getLogger(AuthController.class).warn("No se pudo enviar el correo de recuperación");
+            return respuestaGenericaRecuperacion();
         }
-        return new MessageResponse("Si el correo está registrado, recibirás un enlace de recuperación.");
+        if (!permitido) {
+            return ResponseEntity.status(429).body(new MessageResponse("Demasiadas solicitudes. Esperá un minuto e intentá nuevamente."));
+        }
+        return respuestaGenericaRecuperacion();
+    }
+
+    private ResponseEntity<MessageResponse> respuestaGenericaRecuperacion() {
+        return ResponseEntity.ok(new MessageResponse("Si el email está registrado, te enviamos un código de 6 dígitos. Revisá también spam"));
     }
     @PostMapping("/auth/reset-password")
     public MessageResponse reset(@Valid @RequestBody ResetPasswordRequest request) {
         passwords.restablecer(request.token(), request.newPassword());
         return new MessageResponse("Contraseña restablecida. Iniciá sesión nuevamente.");
+    }
+
+    @PostMapping("/auth/reset-password/code")
+    public ResponseEntity<MessageResponse> resetWithCode(@Valid @RequestBody ResetPasswordCodeRequest request) {
+        if (!passwords.restablecerConCodigo(request.email(), request.code(), request.newPassword())) {
+            return ResponseEntity.badRequest().body(new MessageResponse("El código es inválido, venció o se agotaron los intentos."));
+        }
+        return ResponseEntity.ok(new MessageResponse("Contraseña restablecida. Iniciá sesión nuevamente."));
     }
 
     @PostMapping("/auth/reset-password/validate")

@@ -79,7 +79,7 @@ public class SecurityConfig {
                                 "/mis-sucursales-folder/**",
 
                                 "/auth/login", "/auth/register", "/auth/refresh",
-                                "/auth/forgot-password", "/auth/reset-password", "/auth/reset-password/validate",
+                                "/auth/forgot-password", "/auth/reset-password", "/auth/reset-password/code", "/auth/reset-password/validate",
                                 "/auth/send-verification", "/auth/verify-email", "/auth/verification-status", "/auth/complete-verification",
                                 "/usuarios/inicio-sesion",
                                 "/usuarios/recuperar-cuenta",
