@@ -395,6 +395,12 @@ public class SucursalService {
     }
 
 
+    public List<SucursalMiniDTO> listarSucursalesComoEmpleado(String userEmail) {
+
+        return mapearSucursalesMini(sucRepo.findSucursalesDondeEsEmpleado(userEmail));
+    }
+
+
     public Sucursal listarSucursalPorId(Integer id) {
         // Consulta anterior a la optimización. Reemplazada por findByIdConEmpleador.
         // return sucRepo.findById(id).
