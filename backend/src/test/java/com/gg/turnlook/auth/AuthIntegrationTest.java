@@ -177,6 +177,47 @@ class AuthIntegrationTest {
         verifyNoInteractions(email);
     }
 
+    @Test void solicitudOtpEsPublicaGenericaYAplicaRateLimit() throws Exception {
+        var client = java.net.http.HttpClient.newHttpClient();
+        String url = "http://localhost:" + port + "/auth/forgot-password";
+        var registrado = java.net.http.HttpRequest.newBuilder(java.net.URI.create(url))
+                .header("Content-Type", "application/json")
+                .POST(java.net.http.HttpRequest.BodyPublishers.ofString("{\"email\":\"" + usuario.getEmail() + "\"}")).build();
+        var respuestaRegistrado = client.send(registrado, java.net.http.HttpResponse.BodyHandlers.ofString());
+        assertEquals(200, respuestaRegistrado.statusCode());
+        assertTrue(respuestaRegistrado.body().contains("Si el email está registrado, te enviamos un código de 6 dígitos. Revisá también spam"));
+
+        var desconocido = java.net.http.HttpRequest.newBuilder(java.net.URI.create(url))
+                .header("Content-Type", "application/json")
+                .POST(java.net.http.HttpRequest.BodyPublishers.ofString("{\"email\":\"desconocido-" + UUID.randomUUID() + "@example.com\"}")).build();
+        var respuestaDesconocido = client.send(desconocido, java.net.http.HttpResponse.BodyHandlers.ofString());
+        assertEquals(respuestaRegistrado.statusCode(), respuestaDesconocido.statusCode());
+        assertEquals(respuestaRegistrado.body(), respuestaDesconocido.body());
+
+        var repetido = client.send(registrado, java.net.http.HttpResponse.BodyHandlers.ofString());
+        assertEquals(429, repetido.statusCode());
+    }
+
+    @Test void restablecePasswordConCodigoOtpUnaSolaVez() throws Exception {
+        var codigo = new AtomicReference<String>();
+        doAnswer(invocation -> { codigo.set(invocation.getArgument(1)); return null; })
+                .when(email).enviarCodigoRecuperacion(eq(usuario.getEmail()), anyString(), anyLong());
+        assertTrue(passwords.solicitarCodigo(usuario.getEmail()));
+        assertTrue(codigo.get().matches("\\d{6}"));
+
+        var client = java.net.http.HttpClient.newHttpClient();
+        var request = java.net.http.HttpRequest.newBuilder(java.net.URI.create("http://localhost:" + port + "/auth/reset-password/code"))
+                .header("Content-Type", "application/json")
+                .POST(java.net.http.HttpRequest.BodyPublishers.ofString("{\"email\":\"" + usuario.getEmail()
+                        + "\",\"code\":\"" + codigo.get() + "\",\"newPassword\":\"NuevaPassword123!\"}")).build();
+        var response = client.send(request, java.net.http.HttpResponse.BodyHandlers.ofString());
+        assertEquals(200, response.statusCode(), response.body());
+        assertTrue(encoder.matches("NuevaPassword123!", usuarios.findById(usuario.getId()).orElseThrow().getPassword()));
+        assertEquals(1, usuarios.findById(usuario.getId()).orElseThrow().getCredencialesVersion());
+        var replay = client.send(request, java.net.http.HttpResponse.BodyHandlers.ofString());
+        assertEquals(400, replay.statusCode());
+    }
+
     private int get(String token) throws Exception {
         var request = java.net.http.HttpRequest.newBuilder(java.net.URI.create("http://localhost:" + port + "/usuarios/listar"))
                 .header("Authorization", "Bearer " + token).GET().build();
