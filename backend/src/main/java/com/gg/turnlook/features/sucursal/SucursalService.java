@@ -72,6 +72,11 @@ public class SucursalService {
     /// METODOS
 
 
+    /** Devuelve las categorías con su id para que el frontend pueda enviar categoriaId. */
+    public java.util.List<com.gg.turnlook.features.sucursal.categoria.Categoria> listarCategoriasConId() {
+        return catRepo.findAll();
+    }
+
     public boolean enSucursal(String userEmail, Sucursal sucursal) {
 
         // Consulta anterior a la optimización. Reemplazada por contarUsuarioEnSucursal.

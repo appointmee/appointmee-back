@@ -213,6 +213,11 @@ public class SucursalController {
     }
 
 
+    @GetMapping("/categorias/detalle")
+    public ResponseEntity<?> listarCategoriasDetalle() {
+        return ResponseEntity.ok().body(sucursalService.listarCategoriasConId());
+    }
+
     @GetMapping("/categorias")
     public ResponseEntity<?> listarCategorias() {
 
