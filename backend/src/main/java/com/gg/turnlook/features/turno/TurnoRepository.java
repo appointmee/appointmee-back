@@ -15,9 +15,27 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 
-
-
 public interface TurnoRepository extends JpaRepository<Turno, Integer> {
+
+    @Query("""
+            SELECT t.fechaHora, t.estado
+            FROM Turno t
+            WHERE t.fechaHora >= :desde AND t.fechaHora < :hasta
+            ORDER BY t.fechaHora
+            """)
+    List<Object[]> findDatosEstadisticasGlobales(@Param("desde") LocalDateTime desde,
+                                                @Param("hasta") LocalDateTime hasta);
+
+    @Query("""
+            SELECT t.fechaHora, t.estado, t.servicio.id, t.servicio.nombre
+            FROM Turno t
+            WHERE t.servicio.sucursal.id = :sucursalId
+              AND t.fechaHora >= :desde AND t.fechaHora < :hasta
+            ORDER BY t.fechaHora
+            """)
+    List<Object[]> findDatosEstadisticas(@Param("sucursalId") Integer sucursalId,
+                                         @Param("desde") LocalDateTime desde,
+                                         @Param("hasta") LocalDateTime hasta);
 
     @Modifying
     @Query("update Turno t set t.estado = :nuevoEstado, t.fechaModificacionEstado = CURRENT_TIMESTAMP where t.id = :turnoId and t.estado in :estadosActuales")
