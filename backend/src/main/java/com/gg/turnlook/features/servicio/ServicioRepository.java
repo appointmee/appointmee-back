@@ -16,7 +16,7 @@ public interface ServicioRepository extends JpaRepository<Servicio, Integer> {
 
     // fotoPerfil viene con JOIN para no consultarla una vez por servicio.
     @EntityGraph(attributePaths = {"fotoPerfil"})
-    List<Servicio> findBySucursalId(Integer sucursalId);
+    List<Servicio> findBySucursalIdAndActivoTrue(Integer sucursalId);
 
 
     // Detalle de servicio: foto y sucursal con su categoria en una sola query,

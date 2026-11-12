@@ -6,6 +6,7 @@ import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 
@@ -54,12 +55,15 @@ public class ServicioController {
     }
 
 
-    @PreAuthorize("hasRole('ADMINISTRADOR','EMPLEADOR')")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'EMPLEADOR')")
     @DeleteMapping("/eliminar/{servicioId}")
     public ResponseEntity<?> eliminarServicio(@PathVariable("servicioId") Integer servicioId,
-                                              @AuthenticationPrincipal String empleadorEmail) {
+                                              @AuthenticationPrincipal String empleadorEmail,
+                                              Authentication authentication) {
 
-        servicioService.eliminarServicio(servicioId, empleadorEmail);
+        boolean esAdministrador = authentication.getAuthorities().stream()
+                .anyMatch(authority -> "ROLE_ADMINISTRADOR".equals(authority.getAuthority()));
+        servicioService.eliminarServicio(servicioId, empleadorEmail, esAdministrador);
         return ResponseEntity.ok().body("Se elimino el servicio correctamente");
     }
 
@@ -80,7 +84,6 @@ public class ServicioController {
 
 
 }
-
 
 
 

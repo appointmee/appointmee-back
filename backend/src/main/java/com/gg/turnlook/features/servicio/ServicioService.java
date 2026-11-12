@@ -96,11 +96,12 @@ public class ServicioService {
     }
 
 
-    public void eliminarServicio(Integer servicioId, String empleadorEmail) {
+    public void eliminarServicio(Integer servicioId, String empleadorEmail, boolean esAdministrador) {
 
         Servicio servicio = listarServicioPorId(servicioId);
 
-        if(!servicio.getSucursal().getEmpleador().getEmail().equals(empleadorEmail)){
+        if (!esAdministrador
+                && !servicio.getSucursal().getEmpleador().getEmail().equals(empleadorEmail)) {
             throw new ForbiddenException("No tenes permisos");
         }
 
@@ -120,7 +121,7 @@ public class ServicioService {
 
         sucService.listarSucursalPorId(sucursalId);  //validacion
 
-        List<Servicio> servicios = servRepo.findBySucursalId(sucursalId);
+        List<Servicio> servicios = servRepo.findBySucursalIdAndActivoTrue(sucursalId);
 
         // Las puntuaciones de todos los servicios en una sola query, en vez de
         // dos por servicio.
@@ -200,7 +201,5 @@ public class ServicioService {
 
 
 }
-
-
 
 
