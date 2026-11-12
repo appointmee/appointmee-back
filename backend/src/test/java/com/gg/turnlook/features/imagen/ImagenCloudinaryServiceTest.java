@@ -53,9 +53,6 @@ class ImagenCloudinaryServiceTest {
         assertEquals("foto.jpg", subida.nombreArchivo());
         ArgumentCaptor<Map> opciones = ArgumentCaptor.forClass(Map.class);
         verify(uploader).upload(any(), opciones.capture());
-        assertEquals("appointmee/perfiles", opciones.getValue().get("folder"));
-        assertEquals("appointmee/perfiles", opciones.getValue().get("asset_folder"));
-        assertEquals(false, opciones.getValue().get("use_asset_folder_as_public_id_prefix"));
         assertEquals(5L * 1024 * 1024, opciones.getValue().get("max_file_size"));
         assertEquals(Arrays.asList("jpg", "jpeg", "png", "webp", "gif"),
                 opciones.getValue().get("allowed_formats"));

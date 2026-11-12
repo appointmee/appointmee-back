@@ -60,9 +60,6 @@ public class ImagenCloudinaryService {
                     ObjectUtils.asMap(
                             // folder mantiene compatibilidad con cuentas legacy; asset_folder
                             // organiza cuentas dynamic y la opción conserva el prefijo del public_id.
-                            "folder", carpeta,
-                            "asset_folder", carpeta,
-                            "use_asset_folder_as_public_id_prefix", false,
                             "public_id", publicIdDeseado,
                             "resource_type", "image",
                             "allowed_formats", Arrays.asList("jpg", "jpeg", "png", "webp", "gif"),
