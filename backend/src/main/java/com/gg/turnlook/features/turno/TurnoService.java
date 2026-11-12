@@ -273,7 +273,7 @@ public class TurnoService {
 
         UsuarioResponseDTO empleado = new UsuarioResponseDTO(
                 e.getId(), e.getNombre(), e.getApellido(), e.getEmail(),
-                e.getFotoPerfil().getFotoValida());
+                e.getFotoPerfil() == null ? null : e.getFotoPerfil().getFotoValida());
 
         ServicioTurnoResponseDTO servicio = new ServicioTurnoResponseDTO(
                 s.getId(), s.getNombre(), s.getPrecio(), s.getDuracion());

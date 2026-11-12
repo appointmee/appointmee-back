@@ -124,7 +124,7 @@ public class SolicitudEmpleadorService {
 
         UsuarioResponseDTO user = new UsuarioResponseDTO(
                 usuario.getId(), usuario.getNombre(), usuario.getApellido(),
-                usuario.getEmail(), usuario.getFotoPerfil().getFotoValida());
+                usuario.getEmail(), usuario.getFotoPerfil() == null ? null : usuario.getFotoPerfil().getFotoValida());
 
         solicitud.setUsuario(user);
 

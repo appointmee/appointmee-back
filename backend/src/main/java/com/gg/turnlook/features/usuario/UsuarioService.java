@@ -220,7 +220,7 @@ public class UsuarioService {
         Usuario u = listarUsuarioPorEmail(email.getEmail());
 
         return new UsuarioResponseDTO(u.getId(), u.getNombre(), u.getApellido()
-                , u.getEmail(), u.getFotoPerfil().getFotoValida());
+                , u.getEmail(), u.getFotoPerfil() == null ? null : u.getFotoPerfil().getFotoValida());
     }
 
 
@@ -276,7 +276,7 @@ public class UsuarioService {
 
         uPerfil.setRoles(setRolesComoString(u));
 
-        uPerfil.setFotoPerfil(u.getFotoPerfil().getFotoValida());
+        uPerfil.setFotoPerfil(u.getFotoPerfil() == null ? null : u.getFotoPerfil().getFotoValida());
 
         // Las puntuaciones de todas las sucursales del usuario en una sola
         // query, en vez de dos por sucursal.
@@ -287,7 +287,7 @@ public class UsuarioService {
         uPerfil.setSucursalesEmpleado(u.getSucursalesEmpleado().stream()
                 .map(suc -> new SucursalMiniDTO(suc.getId(), suc.getNombre(),
                         suc.getCategoria().getCategoria().name(),
-                        suc.getFotoPerfil().getFotoValida(),
+                        suc.getFotoPerfil() == null ? null : suc.getFotoPerfil().getFotoValida(),
                         puntuacionDe(puntuaciones.get(suc.getId())),
                         cantidadDe(puntuaciones.get(suc.getId())),
                         DiasSemanaUtil.aNombres(suc.getDiasApertura()))
@@ -331,7 +331,7 @@ public class UsuarioService {
         Usuario usuario = listarUsuarioPorEmail(userEmail);
 
         return new UsuarioMeDTO(usuario.getId(), setRolesComoString(usuario),
-                usuario.getFotoPerfil().getFotoValida());
+                usuario.getFotoPerfil() == null ? null : usuario.getFotoPerfil().getFotoValida());
     }
 
 

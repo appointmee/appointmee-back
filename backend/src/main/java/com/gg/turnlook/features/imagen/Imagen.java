@@ -32,11 +32,6 @@ public class Imagen {
     private String publicId;
 
 
-    @Column(name = "url_alt" ,nullable = false)
-    private String urlAlt = "https://pimedelaar.org/wp-content/uploads/2023/05/no-image.png";
-                                // borrar esto dsp cuando g pase la suya O dejar esta
-
-
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "sucursal_id")
     private Sucursal sucursal;
@@ -45,8 +40,11 @@ public class Imagen {
 
     /// METODOS
 
+    // Cloudinary es el unico proveedor de imagenes. Si no hay URL (por ejemplo,
+    // una foto de perfil opcional), se devuelve null y la capa de presentacion
+    // se encarga de mostrar el placeholder correspondiente.
     public String getFotoValida(){
-        return this.url != null ? url : urlAlt;
+        return this.url;
     }
 
 }

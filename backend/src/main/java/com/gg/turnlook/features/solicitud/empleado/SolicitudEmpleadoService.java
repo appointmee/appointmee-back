@@ -120,7 +120,7 @@ public class SolicitudEmpleadoService {
         Usuario e = solicitud.getEmpleado();
         UsuarioResponseDTO empleado = new UsuarioResponseDTO(
                 e.getId(), e.getNombre(), e.getApellido(),
-                e.getEmail(), e.getFotoPerfil().getFotoValida());
+                e.getEmail(), e.getFotoPerfil() == null ? null : e.getFotoPerfil().getFotoValida());
 
         solicitudDTO.setEmpleado(empleado);
 
@@ -134,7 +134,7 @@ public class SolicitudEmpleadoService {
 
         SucursalMiniDTO sucursal = new SucursalMiniDTO(
                 s.getId(), s.getNombre(), s.getCategoria().getCategoria().name(),
-                s.getFotoPerfil().getFotoValida(),
+                s.getFotoPerfil() == null ? null : s.getFotoPerfil().getFotoValida(),
                 puntuacionDe(puntuaciones.get(s.getId())),
                 cantidadDe(puntuaciones.get(s.getId())),
                 DiasSemanaUtil.aNombres(s.getDiasApertura()));
