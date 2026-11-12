@@ -1,6 +1,8 @@
 package com.gg.turnlook.features.usuario;
 
 import com.gg.turnlook.features.usuario.dto.UsuarioMiniAdminDTO;
+import com.gg.turnlook.features.usuario.rol.ERol;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.domain.Pageable;
@@ -13,6 +15,25 @@ import org.springframework.data.repository.query.Param;
 
 
 public interface UsuarioRepository extends JpaRepository<Usuario,Integer> {
+
+    @Query("""
+            SELECT u.fechaCreacion, r.rol
+            FROM Usuario u JOIN u.roles r
+            WHERE u.fechaCreacion >= :desde AND u.fechaCreacion <= :hasta
+              AND r.rol IN :roles
+            ORDER BY u.fechaCreacion
+            """)
+    List<Object[]> findAltasPorFechaYRol(@Param("desde") LocalDate desde,
+                                         @Param("hasta") LocalDate hasta,
+                                         @Param("roles") List<ERol> roles);
+
+    @Query("""
+            SELECT r.rol, COUNT(DISTINCT u.id)
+            FROM Usuario u JOIN u.roles r
+            WHERE u.activo = true AND r.rol IN :roles
+            GROUP BY r.rol
+            """)
+    List<Object[]> contarUsuariosActivosPorRol(@Param("roles") List<ERol> roles);
 
 
     // fotoPerfil se trae junto con los roles porque el perfil y varias

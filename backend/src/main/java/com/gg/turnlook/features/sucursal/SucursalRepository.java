@@ -1,6 +1,7 @@
 package com.gg.turnlook.features.sucursal;
 
 import com.gg.turnlook.features.sucursal.categoria.ECategoria;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.EntityGraph;
@@ -13,6 +14,18 @@ import org.springframework.data.repository.query.Param;
 
 
 public interface SucursalRepository extends JpaRepository<Sucursal, Integer> {
+
+    @Query("""
+            SELECT s.fechaCreacion, s.activo
+            FROM Sucursal s
+            WHERE s.fechaCreacion >= :desde AND s.fechaCreacion <= :hasta
+            ORDER BY s.fechaCreacion
+            """)
+    List<Object[]> findAltasPorFecha(@Param("desde") LocalDate desde,
+                                     @Param("hasta") LocalDate hasta);
+
+    @Query("SELECT s.activo, COUNT(s) FROM Sucursal s GROUP BY s.activo")
+    List<Object[]> contarSucursalesPorEstado();
 
 
     // categoria y fotoPerfil se traen con JOIN en la misma query. Si no, cada
@@ -111,5 +124,4 @@ public interface SucursalRepository extends JpaRepository<Sucursal, Integer> {
 
 
 }
-
 
