@@ -270,7 +270,7 @@ public class SucursalService {
                 .map(suc -> new SucursalMiniDTO(
                         suc.getId(), suc.getNombre(),
                         suc.getCategoria().getCategoria().name(),
-                        suc.getFotoPerfil().getFotoValida(),
+                        suc.getFotoPerfil() == null ? null : suc.getFotoPerfil().getFotoValida(),
                         puntuacionDe(puntuaciones.get(suc.getId())),
                         cantidadDe(puntuaciones.get(suc.getId())),
                         DiasSemanaUtil.aNombres(suc.getDiasApertura()))
@@ -329,7 +329,7 @@ public class SucursalService {
 
         dto.setDiasApertura(DiasSemanaUtil.aNombres(suc.getDiasApertura()));
 
-        dto.setFotoPerfil(suc.getFotoPerfil().getFotoValida());
+        dto.setFotoPerfil(suc.getFotoPerfil() == null ? null : suc.getFotoPerfil().getFotoValida());
 
         // Consulta anterior a la optimización. Reemplazada por getPuntuacionesSucursales.
         // dto.setPuntuacion(reseniaService.getPuntuacionPromedioSucursal(suc.getId()));

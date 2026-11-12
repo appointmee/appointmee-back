@@ -132,7 +132,7 @@ public class ServicioService {
         return servicios.stream()
                 .map(s -> new ServicioMiniDTO(s.getId(), s.getNombre(),
                         s.getDuracion(), s.getPrecio(), s.getDescripcion(),
-                        s.getFotoPerfil().getFotoValida(),
+                        s.getFotoPerfil() == null ? null : s.getFotoPerfil().getFotoValida(),
                         puntuacionDe(puntuaciones.get(s.getId())),
                         cantidadDe(puntuaciones.get(s.getId())))
                 )
@@ -174,7 +174,7 @@ public class ServicioService {
 
         dto.setPrecio(s.getPrecio());
 
-        dto.setFotoPerfil(s.getFotoPerfil().getFotoValida());
+        dto.setFotoPerfil(s.getFotoPerfil() == null ? null : s.getFotoPerfil().getFotoValida());
 
         // Consulta anterior a la optimización. Reemplazada por getPuntuacionesServicios.
         // dto.setPuntuacion(reseniaService.getPuntuacionPromedioServicio(s.getId()));

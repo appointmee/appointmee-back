@@ -47,14 +47,20 @@ public class ImagenCloudinaryService {
         try {
             byte[] contenido = archivo.getBytes();
             String carpeta = CARPETA_RAIZ + tipo.getCarpeta();
+            String nombreArchivo = archivo.getOriginalFilename();
+            String nombreBase = nombreArchivo != null ? nombreArchivo : "imagen";
+            int punto = nombreBase.lastIndexOf('.');
+            if (punto > 0) {
+                nombreBase = nombreBase.substring(0, punto);
+            }
+            String nombreSanitizado = nombreBase.replaceAll("[^A-Za-z0-9_-]", "_");
+            String publicIdDeseado = carpeta + "/" + nombreSanitizado;
             Map<?, ?> resultado = cloudinary.uploader().upload(
                     contenido,
                     ObjectUtils.asMap(
                             // folder mantiene compatibilidad con cuentas legacy; asset_folder
                             // organiza cuentas dynamic y la opción conserva el prefijo del public_id.
-                            "folder", carpeta,
-                            "asset_folder", carpeta,
-                            "use_asset_folder_as_public_id_prefix", true,
+                            "public_id", publicIdDeseado,
                             "resource_type", "image",
                             "allowed_formats", Arrays.asList("jpg", "jpeg", "png", "webp", "gif"),
                             "max_file_size", TAMANIO_MAXIMO
@@ -126,7 +132,10 @@ public class ImagenCloudinaryService {
         try {
             URI uri = URI.create(url);
             String ruta = "/" + cloudName + "/image/upload/";
+            // Admite transformaciones opcionales de Cloudinary entre image/upload/ y el public_id
+            // (ej. /image/upload/w_200,h_200,c_fill/appointmee/perfiles/foto.jpg)
             String patron = Pattern.quote(ruta) + "(?:v[0-9]+/)?"
+                    + "(?:[a-z0-9_]+(?:,[a-z0-9_]+)*/)*"
                     + Pattern.quote(publicId) + "\\.(?:jpg|jpeg|png|webp|gif)";
             if (!esImagenPropia(publicId) || url.length() > 1000
                     || !"https".equals(uri.getScheme()) || !"res.cloudinary.com".equals(uri.getHost())

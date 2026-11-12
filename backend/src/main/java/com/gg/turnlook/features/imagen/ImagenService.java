@@ -201,8 +201,12 @@ public class ImagenService {
         validarUrlParaPublicId(url, publicIdNuevo);
         String publicIdAnterior = imagen.getPublicId();
 
-        if (publicIdNuevo == null && url.equals(imagen.getUrl())) {
-            publicIdNuevo = publicIdAnterior;
+        if (publicIdNuevo == null) {
+            if (url.equals(imagen.getUrl())) {
+                publicIdNuevo = publicIdAnterior;
+            } else {
+                throw new BadRequestException("Se requiere el public_id para cambiar la imagen");
+            }
         }
 
         imagen.setUrl(url);
@@ -219,6 +223,24 @@ public class ImagenService {
                 && imagenRepo.contarEnUsoPorPublicId(publicId) == 0) {
             cloudinaryService.eliminar(publicId);
         }
+    }
+
+    /**
+     * Elimina una imagen huérfana de Cloudinary y de la base de datos.
+     * Solo se puede eliminar si no está siendo usada por ninguna entidad.
+     */
+    public void eliminarImagenHuérfana(String publicId) {
+        if (publicId == null || publicId.isBlank()) {
+            throw new BadRequestException("Se requiere el public_id de la imagen");
+        }
+        if (!cloudinaryService.esImagenPropia(publicId)) {
+            throw new BadRequestException("El public_id no pertenece a AppointMee");
+        }
+        if (imagenRepo.contarEnUsoPorPublicId(publicId) > 0) {
+            throw new BadRequestException("La imagen está en uso, no se puede eliminar");
+        }
+        cloudinaryService.eliminar(publicId);
+        imagenRepo.eliminarHuerfanasPorPublicId(publicId);
     }
 
     private String validarPublicId(String publicId) {

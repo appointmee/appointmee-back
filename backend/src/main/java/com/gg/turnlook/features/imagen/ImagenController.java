@@ -24,11 +24,14 @@ public class ImagenController {
 
     private final ImagenCloudinaryService imagenCloudinaryService;
     private final ImagenPendienteService imagenPendienteService;
+    private final ImagenService imagenService;
 
     public ImagenController(ImagenCloudinaryService imagenCloudinaryService,
-                            ImagenPendienteService imagenPendienteService) {
+                            ImagenPendienteService imagenPendienteService,
+                            ImagenService imagenService) {
         this.imagenCloudinaryService = imagenCloudinaryService;
         this.imagenPendienteService = imagenPendienteService;
+        this.imagenService = imagenService;
     }
 
     @PreAuthorize("isAuthenticated()")
@@ -57,6 +60,15 @@ public class ImagenController {
             @AuthenticationPrincipal String usuario
     ) {
         imagenPendienteService.descartar(imagen.publicId(), imagen.tokenCancelacion(), usuario);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PreAuthorize("isAuthenticated()")
+    @DeleteMapping("/huérfana")
+    public ResponseEntity<Void> eliminarHuérfana(
+            @RequestParam String publicId
+    ) {
+        imagenService.eliminarImagenHuérfana(publicId);
         return ResponseEntity.noContent().build();
     }
 
