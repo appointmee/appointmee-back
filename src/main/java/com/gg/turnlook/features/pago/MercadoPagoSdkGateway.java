@@ -41,7 +41,7 @@ public class MercadoPagoSdkGateway implements MercadoPagoGateway {
                 .items(List.of(item))
                 .externalReference(turno.getId().toString())
                 // IMPORTANTE: si cambia la URL pública del backend, actualizar esta notificationUrl.
-                .notificationUrl("https://appointrail-production.up.railway.app/pagos/webhook")
+                .notificationUrl("https://appointmee-back-production.up.railway.app/pagos/webhook")
                 .build();
 
         Preference preference = new PreferenceClient().create(request);
