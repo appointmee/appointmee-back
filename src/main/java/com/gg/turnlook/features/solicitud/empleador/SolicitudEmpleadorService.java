@@ -7,6 +7,7 @@ import com.gg.turnlook.features.solicitud.EstadoSolicitud;
 import com.gg.turnlook.features.solicitud.empleador.dto.SolicitudEmpleadorCrearDTO;
 import com.gg.turnlook.features.solicitud.empleador.dto.SolicitudEmpleadorMiniDTO;
 import com.gg.turnlook.features.solicitud.empleador.dto.SolicitudEmpleadorResponseDTO;
+import com.gg.turnlook.features.usuario.FotoPerfilUsuario;
 import com.gg.turnlook.features.usuario.Usuario;
 import com.gg.turnlook.features.usuario.UsuarioService;
 import com.gg.turnlook.features.usuario.dto.UsuarioResponseDTO;
@@ -124,7 +125,7 @@ public class SolicitudEmpleadorService {
 
         UsuarioResponseDTO user = new UsuarioResponseDTO(
                 usuario.getId(), usuario.getNombre(), usuario.getApellido(),
-                usuario.getEmail(), usuario.getFotoPerfil() == null ? null : usuario.getFotoPerfil().getFotoValida());
+                usuario.getEmail(), FotoPerfilUsuario.resolver(usuario.getFotoPerfil()));
 
         solicitud.setUsuario(user);
 

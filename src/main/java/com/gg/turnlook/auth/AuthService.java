@@ -57,7 +57,7 @@ public class AuthService {
         var perfil = new com.gg.turnlook.features.usuario.dto.UsuarioMeDTO(
                 usuario.getId(),
                 usuario.getRoles().stream().map(r -> r.getRol().name()).collect(java.util.stream.Collectors.toSet()),
-                usuario.getFotoPerfil() == null ? null : usuario.getFotoPerfil().getFotoValida());
+                com.gg.turnlook.features.usuario.FotoPerfilUsuario.resolver(usuario.getFotoPerfil()));
 
         return new VerificacionEmailResponse("Tu cuenta fue verificada correctamente.",
                 sesion.getToken(), sesion.getToken(), sesion.getRefreshToken(), sesion.getExpiresIn(), perfil);

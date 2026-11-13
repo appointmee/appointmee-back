@@ -13,6 +13,7 @@ import com.gg.turnlook.features.resenia.ReseniaService;
 import com.gg.turnlook.features.resenia.ReseniaService.ResumenPuntuacion;
 import com.gg.turnlook.features.sucursal.Sucursal;
 import com.gg.turnlook.features.sucursal.dto.SucursalMiniDTO;
+import com.gg.turnlook.features.usuario.FotoPerfilUsuario;
 import com.gg.turnlook.features.usuario.dto.UsuarioCrearDTO;
 import com.gg.turnlook.features.usuario.dto.UsuarioEmailDTO;
 import com.gg.turnlook.features.usuario.dto.UsuarioMeDTO;
@@ -202,8 +203,8 @@ public class UsuarioService {
     //             .toList();
     // }
     public List<UsuarioMiniAdminDTO> listarUsuarios() {
-        return usRepo.buscarMiniAdmin(null, null, null,
-                PageRequest.of(0, LIMITE_USUARIOS_ADMIN));
+        return mapearMiniAdmin(usRepo.buscarMiniAdmin(null, null, null,
+                PageRequest.of(0, LIMITE_USUARIOS_ADMIN)));
     }
 
 
@@ -216,8 +217,19 @@ public class UsuarioService {
     //             .toList();
     // }
     public List<UsuarioMiniAdminDTO> filtrarListaUsuarios(String nombre, String apellido, Boolean activo) {
-        return usRepo.buscarMiniAdmin(nombre, apellido, activo,
-                PageRequest.of(0, LIMITE_USUARIOS_ADMIN));
+        return mapearMiniAdmin(usRepo.buscarMiniAdmin(nombre, apellido, activo,
+                PageRequest.of(0, LIMITE_USUARIOS_ADMIN)));
+    }
+
+    private List<UsuarioMiniAdminDTO> mapearMiniAdmin(List<Object[]> filas) {
+        return filas.stream()
+                .map(f -> new UsuarioMiniAdminDTO(
+                        (Integer) f[0],
+                        (String) f[1],
+                        (String) f[2],
+                        (Boolean) f[3],
+                        FotoPerfilUsuario.resolver((String) f[4])))
+                .toList();
     }
 
 
@@ -226,7 +238,7 @@ public class UsuarioService {
         Usuario u = listarUsuarioPorEmail(email.getEmail());
 
         return new UsuarioResponseDTO(u.getId(), u.getNombre(), u.getApellido()
-                , u.getEmail(), u.getFotoPerfil() == null ? null : u.getFotoPerfil().getFotoValida());
+                , u.getEmail(), FotoPerfilUsuario.resolver(u.getFotoPerfil()));
     }
 
 
@@ -282,7 +294,7 @@ public class UsuarioService {
 
         uPerfil.setRoles(setRolesComoString(u));
 
-        uPerfil.setFotoPerfil(u.getFotoPerfil() == null ? null : u.getFotoPerfil().getFotoValida());
+        uPerfil.setFotoPerfil(FotoPerfilUsuario.resolver(u.getFotoPerfil()));
 
         // Las puntuaciones de todas las sucursales del usuario en una sola
         // query, en vez de dos por sucursal.
@@ -337,7 +349,7 @@ public class UsuarioService {
         Usuario usuario = listarUsuarioPorEmail(userEmail);
 
         return new UsuarioMeDTO(usuario.getId(), setRolesComoString(usuario),
-                usuario.getFotoPerfil() == null ? null : usuario.getFotoPerfil().getFotoValida());
+                FotoPerfilUsuario.resolver(usuario.getFotoPerfil()));
     }
 
 
