@@ -502,18 +502,33 @@ public class SucursalService {
 
     private Map<Integer, Imagen> imagenesDe(Set<Usuario> usuarios) {
 
-        List<Integer> ids = usuarios.stream()
-                .map(Usuario::getFotoPerfil)
-                .filter(Objects::nonNull)
-                .map(Imagen::getId)
-                .filter(Objects::nonNull)
-                .distinct()
-                .toList();
+        Map<Integer, Integer> fotoIdPorUsuario = new java.util.HashMap<>();
+        List<Integer> ids = new java.util.ArrayList<>();
+
+        for (Usuario usuario : usuarios) {
+            Imagen foto = usuario.getFotoPerfil();
+            if (foto == null || foto.getId() == null) {
+                continue;
+            }
+            fotoIdPorUsuario.put(usuario.getId(), foto.getId());
+            ids.add(foto.getId());
+        }
 
         if (ids.isEmpty()) return Map.of();
 
-        return imagenRepo.findAllById(ids).stream()
+        Map<Integer, Imagen> imagenesPorId = imagenRepo.findAllById(ids.stream().distinct().toList())
+                .stream()
                 .collect(Collectors.toMap(Imagen::getId, img -> img, (a, b) -> a));
+
+        Map<Integer, Imagen> resultado = new java.util.HashMap<>();
+        for (Map.Entry<Integer, Integer> entry : fotoIdPorUsuario.entrySet()) {
+            Imagen imagen = imagenesPorId.get(entry.getValue());
+            if (imagen != null) {
+                resultado.put(entry.getKey(), imagen);
+            }
+        }
+
+        return resultado;
     }
 
 
