@@ -19,6 +19,7 @@ import com.gg.turnlook.features.turno.dto.TurnoCrearDTO;
 import com.gg.turnlook.features.turno.dto.TurnoDisponibilidadDTO;
 import com.gg.turnlook.features.turno.dto.TurnoMiniDTO;
 import com.gg.turnlook.features.turno.dto.TurnoResponseDTO;
+import com.gg.turnlook.features.usuario.FotoPerfilUsuario;
 import com.gg.turnlook.features.usuario.Usuario;
 import com.gg.turnlook.features.usuario.UsuarioService;
 import com.gg.turnlook.features.usuario.dto.UsuarioMiniDTO;
@@ -347,7 +348,7 @@ public class TurnoService {
 
         UsuarioResponseDTO empleado = new UsuarioResponseDTO(
                 e.getId(), e.getNombre(), e.getApellido(), e.getEmail(),
-                e.getFotoPerfil() == null ? null : e.getFotoPerfil().getFotoValida());
+                FotoPerfilUsuario.resolver(e.getFotoPerfil()));
 
         ServicioTurnoResponseDTO servicio = new ServicioTurnoResponseDTO(
                 s.getId(), s.getNombre(), s.getPrecio(), s.getDuracion());

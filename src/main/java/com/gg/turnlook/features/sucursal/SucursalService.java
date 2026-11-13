@@ -20,6 +20,7 @@ import com.gg.turnlook.features.sucursal.dto.SucursalCrearDTO;
 import com.gg.turnlook.features.sucursal.dto.SucursalMiniDTO;
 import com.gg.turnlook.features.sucursal.dto.SucursalModificarDTO;
 import com.gg.turnlook.features.sucursal.dto.SucursalResponseDTO;
+import com.gg.turnlook.features.usuario.FotoPerfilUsuario;
 import com.gg.turnlook.features.usuario.Usuario;
 import com.gg.turnlook.features.usuario.UsuarioService;
 import com.gg.turnlook.features.usuario.dto.EmpleadoResponseDTO;
@@ -489,8 +490,7 @@ public class SucursalService {
         return empleados.stream().
                 map(emp -> new EmpleadoResponseDTO(
                         emp.getId(), emp.getNombre(), emp.getApellido(),
-                        fotos.get(emp.getId()) != null
-                                ? fotos.get(emp.getId()).getFotoValida() : null,
+                        FotoPerfilUsuario.resolver(fotos.get(emp.getId())),
                         puntuacionDe(puntuaciones.get(emp.getId())),
                         cantidadDe(puntuaciones.get(emp.getId()))
                 )).toList();
@@ -502,18 +502,33 @@ public class SucursalService {
 
     private Map<Integer, Imagen> imagenesDe(Set<Usuario> usuarios) {
 
-        List<Integer> ids = usuarios.stream()
-                .map(Usuario::getFotoPerfil)
-                .filter(Objects::nonNull)
-                .map(Imagen::getId)
-                .filter(Objects::nonNull)
-                .distinct()
-                .toList();
+        Map<Integer, Integer> fotoIdPorUsuario = new java.util.HashMap<>();
+        List<Integer> ids = new java.util.ArrayList<>();
+
+        for (Usuario usuario : usuarios) {
+            Imagen foto = usuario.getFotoPerfil();
+            if (foto == null || foto.getId() == null) {
+                continue;
+            }
+            fotoIdPorUsuario.put(usuario.getId(), foto.getId());
+            ids.add(foto.getId());
+        }
 
         if (ids.isEmpty()) return Map.of();
 
-        return imagenRepo.findAllById(ids).stream()
+        Map<Integer, Imagen> imagenesPorId = imagenRepo.findAllById(ids.stream().distinct().toList())
+                .stream()
                 .collect(Collectors.toMap(Imagen::getId, img -> img, (a, b) -> a));
+
+        Map<Integer, Imagen> resultado = new java.util.HashMap<>();
+        for (Map.Entry<Integer, Integer> entry : fotoIdPorUsuario.entrySet()) {
+            Imagen imagen = imagenesPorId.get(entry.getValue());
+            if (imagen != null) {
+                resultado.put(entry.getKey(), imagen);
+            }
+        }
+
+        return resultado;
     }
 
 
@@ -535,8 +550,7 @@ public class SucursalService {
         return empleados.stream().
                 map(u -> new UsuarioResponseDTO(u.getId(), u.getNombre(),
                         u.getApellido(), u.getEmail(),
-                        fotos.get(u.getId()) != null
-                                ? fotos.get(u.getId()).getFotoValida() : null))
+                        FotoPerfilUsuario.resolver(fotos.get(u.getId()))))
                 .collect(Collectors.toSet());
     }
 

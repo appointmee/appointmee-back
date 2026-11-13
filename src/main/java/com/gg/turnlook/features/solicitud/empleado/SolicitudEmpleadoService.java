@@ -14,6 +14,7 @@ import com.gg.turnlook.features.solicitud.empleador.dto.SolicitudEmpleadorMiniDT
 import com.gg.turnlook.features.sucursal.Sucursal;
 import com.gg.turnlook.features.sucursal.SucursalService;
 import com.gg.turnlook.features.sucursal.dto.SucursalMiniDTO;
+import com.gg.turnlook.features.usuario.FotoPerfilUsuario;
 import com.gg.turnlook.features.usuario.Usuario;
 import com.gg.turnlook.features.usuario.UsuarioService;
 import com.gg.turnlook.features.usuario.dto.UsuarioResponseDTO;
@@ -120,7 +121,7 @@ public class SolicitudEmpleadoService {
         Usuario e = solicitud.getEmpleado();
         UsuarioResponseDTO empleado = new UsuarioResponseDTO(
                 e.getId(), e.getNombre(), e.getApellido(),
-                e.getEmail(), e.getFotoPerfil() == null ? null : e.getFotoPerfil().getFotoValida());
+                e.getEmail(), FotoPerfilUsuario.resolver(e.getFotoPerfil()));
 
         solicitudDTO.setEmpleado(empleado);
 
