@@ -228,6 +228,8 @@ public class SucursalController {
     @GetMapping("/{sucursalId}/resenias")
     public ResponseEntity<?> verResenias(@PathVariable("sucursalId") Integer sucursalId) {
 
+        // Valida que la sucursal exista y este activa para operaciones/vistas normales.
+        sucursalService.listarSucursalPorId(sucursalId);
         return ResponseEntity.ok().body(reseniaService.getReseniasPorSucursal(sucursalId));
     }
 
