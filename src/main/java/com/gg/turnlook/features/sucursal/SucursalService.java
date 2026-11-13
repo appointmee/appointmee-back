@@ -271,7 +271,7 @@ public class SucursalService {
                 reseniaService.getPuntuacionesSucursales(
                         sucursales.stream().map(Sucursal::getId).toList());
 
-        return sucursales.stream()
+        List<SucursalMiniDTO> resultado = new java.util.ArrayList<>(sucursales.stream()
                 .map(suc -> new SucursalMiniDTO(
                         suc.getId(), suc.getNombre(),
                         suc.getCategoria().getCategoria().name(),
@@ -280,7 +280,9 @@ public class SucursalService {
                         cantidadDe(puntuaciones.get(suc.getId())),
                         DiasSemanaUtil.aNombres(suc.getDiasApertura()))
                 )
-                .toList();
+                .toList());
+
+        return ordenarSucursalesPorPuntuacionYPopularidad(resultado);
     }
 
 
@@ -293,6 +295,58 @@ public class SucursalService {
     private static Long cantidadDe(ResumenPuntuacion resumen) {
 
         return resumen == null ? 0L : resumen.cantidad();
+    }
+
+
+    /// Ordena sucursales combinando puntuacion promedio y popularidad (cantidad de resenias)
+    /// con ponderacion 50/50. Ambas metricas se normalizan a [0, 1] dentro del listado:
+    /// - Puntuacion: (promedio - 1) / 4 cuando hay resenias; 0 si no hay (promedio en escala 1-5).
+    /// - Popularidad: cantidad / maxCantidad del listado; 0 si ninguna tiene resenias.
+    /// Sucursales sin resenias quedan con puntaje 0 (valores nulos/ausentes tratados como 0).
+    /// Desempate determinista: mayor puntaje combinado, luego mayor puntuacion, luego mayor
+    /// cantidad de resenias y finalmente id ascendente.
+
+    private List<SucursalMiniDTO> ordenarSucursalesPorPuntuacionYPopularidad(
+            List<SucursalMiniDTO> sucursales) {
+
+        long maxCantidad = sucursales.stream()
+                .mapToLong(s -> s.getCantidadPuntuaciones() == null ? 0L : s.getCantidadPuntuaciones())
+                .max()
+                .orElse(0L);
+
+        sucursales.sort(java.util.Comparator
+                .comparingDouble((SucursalMiniDTO s) -> puntajeCombinadoSucursal(s, maxCantidad))
+                .reversed()
+                .thenComparing(java.util.Comparator.comparingDouble(
+                        (SucursalMiniDTO s) -> puntuacionNormalizada(s)).reversed())
+                .thenComparing(java.util.Comparator.comparingLong(
+                        (SucursalMiniDTO s) -> cantidadSegura(s)).reversed())
+                .thenComparing(SucursalMiniDTO::getId, java.util.Comparator.nullsLast(Integer::compareTo)));
+
+        return sucursales;
+    }
+
+
+    private static double puntajeCombinadoSucursal(SucursalMiniDTO sucursal, long maxCantidad) {
+
+        double puntuacionNorm = puntuacionNormalizada(sucursal);
+        double popularidadNorm = maxCantidad > 0 ? (double) cantidadSegura(sucursal) / maxCantidad : 0.0;
+        return 0.5 * puntuacionNorm + 0.5 * popularidadNorm;
+    }
+
+
+    private static double puntuacionNormalizada(SucursalMiniDTO sucursal) {
+
+        if (sucursal.getPuntuacion() == null || cantidadSegura(sucursal) == 0L) {
+            return 0.0;
+        }
+        return (sucursal.getPuntuacion() - 1.0) / 4.0;
+    }
+
+
+    private static long cantidadSegura(SucursalMiniDTO sucursal) {
+
+        return sucursal.getCantidadPuntuaciones() == null ? 0L : sucursal.getCantidadPuntuaciones();
     }
 
 
