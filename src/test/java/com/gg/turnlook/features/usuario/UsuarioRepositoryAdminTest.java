@@ -1,7 +1,6 @@
 package com.gg.turnlook.features.usuario;
 
 import com.gg.turnlook.features.imagen.Imagen;
-import com.gg.turnlook.features.usuario.dto.UsuarioMiniAdminDTO;
 import jakarta.persistence.EntityManager;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -30,10 +29,10 @@ class UsuarioRepositoryAdminTest {
         var resultados = repository.buscarMiniAdmin(null, null, null, PageRequest.of(0, 50));
 
         assertEquals(Set.of(activo.getId(), inactivo.getId()), resultados.stream()
-                .map(UsuarioMiniAdminDTO::getId)
+                .map(fila -> (Integer) fila[0])
                 .collect(Collectors.toSet()));
-        assertEquals("https://res.cloudinary.com/example/lucia.jpg", resultados.getFirst().getFotoPerfil());
-        assertNull(resultados.getLast().getFotoPerfil());
+        assertEquals("https://res.cloudinary.com/example/lucia.jpg", resultados.getFirst()[4]);
+        assertNull(resultados.getLast()[4]);
     }
 
     @Test
@@ -45,7 +44,7 @@ class UsuarioRepositoryAdminTest {
         var resultados = repository.buscarMiniAdmin("lUcÍa", "gArCía", true, PageRequest.of(0, 50));
 
         assertEquals(1, resultados.size());
-        assertEquals(esperado.getId(), resultados.getFirst().getId());
+        assertEquals(esperado.getId(), resultados.getFirst()[0]);
     }
 
     private Usuario guardar(String nombre, String apellido, String email, boolean activo) {
