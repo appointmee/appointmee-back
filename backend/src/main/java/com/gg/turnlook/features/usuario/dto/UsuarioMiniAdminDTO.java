@@ -18,7 +18,7 @@ public class UsuarioMiniAdminDTO {
     private String nombre;
     private String apellido;
     private boolean estado;
+    private String fotoPerfil;
 
 }
-
 

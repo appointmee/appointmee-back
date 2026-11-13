@@ -1,14 +1,17 @@
 package com.gg.turnlook.features.usuario;
 
+import com.gg.turnlook.features.imagen.Imagen;
+import com.gg.turnlook.features.usuario.dto.UsuarioMiniAdminDTO;
+import jakarta.persistence.EntityManager;
 import java.util.Set;
 import java.util.stream.Collectors;
-import com.gg.turnlook.features.usuario.dto.UsuarioMiniAdminDTO;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
 import org.springframework.data.domain.PageRequest;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 @DataJpaTest(properties = {
         "spring.jpa.hibernate.ddl-auto=create-drop",
@@ -16,10 +19,12 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 })
 class UsuarioRepositoryAdminTest {
     @Autowired private UsuarioRepository repository;
+    @Autowired private EntityManager entityManager;
 
     @Test
     void listaUsuariosSinFiltrosNulos() {
-        Usuario activo = guardar("Lucía", "García", "lucia@example.com", true);
+        Usuario activo = guardar("Lucía", "García", "lucia@example.com", true,
+                "https://res.cloudinary.com/example/lucia.jpg");
         Usuario inactivo = guardar("Mario", "Paz", "mario@example.com", false);
 
         var resultados = repository.buscarMiniAdmin(null, null, null, PageRequest.of(0, 50));
@@ -27,6 +32,8 @@ class UsuarioRepositoryAdminTest {
         assertEquals(Set.of(activo.getId(), inactivo.getId()), resultados.stream()
                 .map(UsuarioMiniAdminDTO::getId)
                 .collect(Collectors.toSet()));
+        assertEquals("https://res.cloudinary.com/example/lucia.jpg", resultados.getFirst().getFotoPerfil());
+        assertNull(resultados.getLast().getFotoPerfil());
     }
 
     @Test
@@ -42,8 +49,18 @@ class UsuarioRepositoryAdminTest {
     }
 
     private Usuario guardar(String nombre, String apellido, String email, boolean activo) {
+        return guardar(nombre, apellido, email, activo, null);
+    }
+
+    private Usuario guardar(String nombre, String apellido, String email, boolean activo, String fotoUrl) {
         Usuario usuario = new Usuario(nombre, apellido, email, "hash");
         usuario.setActivo(activo);
+        if (fotoUrl != null) {
+            Imagen imagen = new Imagen();
+            imagen.setUrl(fotoUrl);
+            entityManager.persist(imagen);
+            usuario.setFotoPerfil(imagen);
+        }
         return repository.saveAndFlush(usuario);
     }
 }
