@@ -74,6 +74,13 @@ public class UsuarioController {
         return ResponseEntity.ok().body("Se eliminó al usuario");
     }
 
+    @PreAuthorize("hasRole('ADMINISTRADOR')")
+    @PatchMapping("/activar/{userId}")
+    public ResponseEntity<?> activarUsuario(@PathVariable("userId") Integer userId) {
+        usuarioService.activarUsuario(userId);
+        return ResponseEntity.ok().body("Se activó al usuario");
+    }
+
 
     @PreAuthorize("hasRole('CLIENTE')")
     @DeleteMapping("/borrar-cuenta")

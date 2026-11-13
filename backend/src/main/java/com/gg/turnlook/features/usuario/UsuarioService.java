@@ -138,6 +138,16 @@ public class UsuarioService {
 
 
     @org.springframework.transaction.annotation.Transactional
+    public void activarUsuario(Integer userId) {
+        Usuario usuario = bloqueo.bloquear(userId);
+        if (usuario.isActivo()) return;
+
+        usuario.setActivo(true);
+        usRepo.save(usuario);
+    }
+
+
+    @org.springframework.transaction.annotation.Transactional
     public void borrarCuentaPropia(String userEmail) {
 
         Usuario usuario = listarUsuarioPorEmail(userEmail);
@@ -345,7 +355,6 @@ public class UsuarioService {
 
 
 }
-
 
 
 

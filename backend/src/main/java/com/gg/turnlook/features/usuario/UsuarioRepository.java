@@ -71,11 +71,14 @@ public interface UsuarioRepository extends JpaRepository<Usuario,Integer> {
     // proyectan los campos que devuelve UsuarioMiniAdminDTO.
     @Query("""
                 SELECT new com.gg.turnlook.features.usuario.dto.UsuarioMiniAdminDTO(
-                    u.id, u.nombre, u.apellido, u.activo)
+                    u.id, u.nombre, u.apellido, u.activo, foto.url)
                 FROM Usuario u
-                WHERE (:nombre IS NULL OR LOWER(u.nombre) = LOWER(:nombre))
-                    AND (:apellido IS NULL OR LOWER(u.apellido) = LOWER(:apellido))
-                    AND (:activo IS NULL OR u.activo = :activo)
+                LEFT JOIN u.fotoPerfil foto
+                WHERE (CAST(:nombre AS string) IS NULL
+                        OR LOWER(u.nombre) = LOWER(CAST(:nombre AS string)))
+                    AND (CAST(:apellido AS string) IS NULL
+                        OR LOWER(u.apellido) = LOWER(CAST(:apellido AS string)))
+                    AND (CAST(:activo AS boolean) IS NULL OR u.activo = :activo)
                 ORDER BY u.id
             """)
     List<UsuarioMiniAdminDTO> buscarMiniAdmin(
