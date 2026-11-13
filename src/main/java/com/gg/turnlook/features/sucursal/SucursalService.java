@@ -502,18 +502,27 @@ public class SucursalService {
 
     private Map<Integer, Imagen> imagenesDe(Set<Usuario> usuarios) {
 
-        List<Integer> ids = usuarios.stream()
-                .map(Usuario::getFotoPerfil)
-                .filter(Objects::nonNull)
-                .map(Imagen::getId)
-                .filter(Objects::nonNull)
-                .distinct()
-                .toList();
+        Map<Integer, Integer> imagenIdPorUsuarioId = usuarios.stream()
+                .filter(usuario -> usuario.getFotoPerfil() != null)
+                .filter(usuario -> usuario.getFotoPerfil().getId() != null)
+                .collect(Collectors.toMap(
+                        Usuario::getId,
+                        usuario -> usuario.getFotoPerfil().getId(),
+                        (primeraImagen, imagenDuplicada) -> primeraImagen));
 
-        if (ids.isEmpty()) return Map.of();
+        if (imagenIdPorUsuarioId.isEmpty()) return Map.of();
 
-        return imagenRepo.findAllById(ids).stream()
-                .collect(Collectors.toMap(Imagen::getId, img -> img, (a, b) -> a));
+        Map<Integer, Imagen> imagenesPorId = imagenRepo
+                .findAllById(imagenIdPorUsuarioId.values().stream().distinct().toList())
+                .stream()
+                .collect(Collectors.toMap(Imagen::getId, imagen -> imagen, (a, b) -> a));
+
+        return imagenIdPorUsuarioId.entrySet().stream()
+                .filter(entry -> imagenesPorId.containsKey(entry.getValue()))
+                .collect(Collectors.toMap(
+                        Map.Entry::getKey,
+                        entry -> imagenesPorId.get(entry.getValue()),
+                        (a, b) -> a));
     }
 
 
@@ -627,6 +636,5 @@ public class SucursalService {
 
 
 }
-
 
 
