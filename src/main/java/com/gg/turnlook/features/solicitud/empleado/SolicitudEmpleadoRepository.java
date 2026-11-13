@@ -29,6 +29,7 @@ public interface SolicitudEmpleadoRepository extends JpaRepository<SolicitudEmpl
                     s.id, s.empleado.nombre, s.empleado.apellido, s.fechaSolicitud)
                 FROM SolicitudEmpleado s
                 WHERE s.sucursal.id = :sucursalId
+                    AND s.sucursal.activo = true
                 ORDER BY s.fechaSolicitud DESC, s.id DESC
             """)
     List<SolicitudEmpleadoMiniSucursalDTO> findMiniBySucursalId(
@@ -44,6 +45,7 @@ public interface SolicitudEmpleadoRepository extends JpaRepository<SolicitudEmpl
                     s.id, s.sucursal.nombre, s.fechaSolicitud)
                 FROM SolicitudEmpleado s
                 WHERE s.empleado.email = :empleadoEmail
+                    AND s.sucursal.activo = true
                 ORDER BY s.fechaSolicitud DESC, s.id DESC
             """)
     List<SolicitudEmpleadoMiniPropiaDTO> findMiniByEmpleadoEmail(
@@ -57,7 +59,7 @@ public interface SolicitudEmpleadoRepository extends JpaRepository<SolicitudEmpl
             "empleado", "empleado.fotoPerfil",
             "sucursal", "sucursal.categoria", "sucursal.fotoPerfil",
             "sucursal.empleador"})
-    @Query("SELECT s FROM SolicitudEmpleado s WHERE s.id = :id")
+    @Query("SELECT s FROM SolicitudEmpleado s WHERE s.id = :id AND s.sucursal.activo = true")
     Optional<SolicitudEmpleado> findByIdConDetalle(@Param("id") Integer id);
 
 
