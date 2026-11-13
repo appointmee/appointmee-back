@@ -20,6 +20,7 @@ import com.gg.turnlook.features.sucursal.dto.SucursalCrearDTO;
 import com.gg.turnlook.features.sucursal.dto.SucursalMiniDTO;
 import com.gg.turnlook.features.sucursal.dto.SucursalModificarDTO;
 import com.gg.turnlook.features.sucursal.dto.SucursalResponseDTO;
+import com.gg.turnlook.features.usuario.FotoPerfilUsuario;
 import com.gg.turnlook.features.usuario.Usuario;
 import com.gg.turnlook.features.usuario.UsuarioService;
 import com.gg.turnlook.features.usuario.dto.EmpleadoResponseDTO;
@@ -489,8 +490,7 @@ public class SucursalService {
         return empleados.stream().
                 map(emp -> new EmpleadoResponseDTO(
                         emp.getId(), emp.getNombre(), emp.getApellido(),
-                        fotos.get(emp.getId()) != null
-                                ? fotos.get(emp.getId()).getFotoValida() : null,
+                        FotoPerfilUsuario.resolver(fotos.get(emp.getId())),
                         puntuacionDe(puntuaciones.get(emp.getId())),
                         cantidadDe(puntuaciones.get(emp.getId()))
                 )).toList();
@@ -535,8 +535,7 @@ public class SucursalService {
         return empleados.stream().
                 map(u -> new UsuarioResponseDTO(u.getId(), u.getNombre(),
                         u.getApellido(), u.getEmail(),
-                        fotos.get(u.getId()) != null
-                                ? fotos.get(u.getId()).getFotoValida() : null))
+                        FotoPerfilUsuario.resolver(fotos.get(u.getId()))))
                 .collect(Collectors.toSet());
     }
 

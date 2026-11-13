@@ -68,10 +68,9 @@ public interface UsuarioRepository extends JpaRepository<Usuario,Integer> {
 
 
     // Listado administrativo: los filtros se resuelven en la base y solo se
-    // proyectan los campos que devuelve UsuarioMiniAdminDTO.
+    // proyectan los campos necesarios para mapear UsuarioMiniAdminDTO.
     @Query("""
-                SELECT new com.gg.turnlook.features.usuario.dto.UsuarioMiniAdminDTO(
-                    u.id, u.nombre, u.apellido, u.activo, foto.url)
+                SELECT u.id, u.nombre, u.apellido, u.activo, foto.url
                 FROM Usuario u
                 LEFT JOIN u.fotoPerfil foto
                 WHERE (CAST(:nombre AS string) IS NULL
@@ -81,7 +80,7 @@ public interface UsuarioRepository extends JpaRepository<Usuario,Integer> {
                     AND (CAST(:activo AS boolean) IS NULL OR u.activo = :activo)
                 ORDER BY u.id
             """)
-    List<UsuarioMiniAdminDTO> buscarMiniAdmin(
+    List<Object[]> buscarMiniAdmin(
             @Param("nombre") String nombre,
             @Param("apellido") String apellido,
             @Param("activo") Boolean activo,
