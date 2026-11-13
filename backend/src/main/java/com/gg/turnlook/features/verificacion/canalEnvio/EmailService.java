@@ -78,6 +78,25 @@ public class EmailService implements CanalEnvioService {
                 .retrieve().toBodilessEntity();
     }
 
+    public void enviarCodigoCambioCorreo(String destinatario, String codigo) {
+        enviarTexto(destinatario, "Confirmá tu correo nuevo - AppointMee",
+                "Tu código para cambiar el correo es: " + codigo
+                        + "\nVence en 5 minutos. Si no lo solicitaste, ignorá este correo.");
+    }
+
+    public void enviarAvisoCambioCorreo(String destinatario) {
+        enviarTexto(destinatario, "Cambió el correo de tu cuenta - AppointMee",
+                "El correo de tu cuenta de AppointMee se actualizó y cerramos tus sesiones anteriores."
+                        + "\nSi no hiciste este cambio, contactá al soporte.");
+    }
+
+    private void enviarTexto(String destinatario, String asunto, String texto) {
+        cliente.post().uri("/emails").contentType(MediaType.APPLICATION_JSON)
+                .body(Map.of("from", remitente, "to", List.of(destinatario),
+                        "subject", asunto, "text", texto))
+                .retrieve().toBodilessEntity();
+    }
+
     public void enviarAvisoCambioPassword(String destinatario) {
         cliente.post().uri("/emails").contentType(MediaType.APPLICATION_JSON)
                 .body(Map.of("from", remitente, "to", List.of(destinatario),

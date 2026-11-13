@@ -168,12 +168,8 @@ public class UsuarioService {
 
         if (usuario.getEmail() != null) usuario.setEmail(usuario.getEmail().trim().toLowerCase(java.util.Locale.ROOT));
         if (usuario.getEmail() != null && !usuario.getEmail().equals(user.getEmail())) {
-            if (usRepo.existsByEmail(usuario.getEmail())) {
-                throw new ConflictException("El email ingresado ya esta en uso");
-            }
-            user.setEmail(usuario.getEmail().trim().toLowerCase(java.util.Locale.ROOT));
-            user.setEmailVerificado(false);
-            revocarSesiones(user);
+            throw new com.gg.turnlook.common.exception.BadRequestException(
+                    "Confirmá el cambio desde el correo nuevo en Ajustes");
         }
 
         if (usuario.getPassword() != null) {
@@ -335,7 +331,7 @@ public class UsuarioService {
     }
 
 
-    private void revocarSesiones(Usuario usuario) {
+    void revocarSesiones(Usuario usuario) {
         usuario.setCredencialesVersion(usuario.getCredencialesVersion() + 1);
         refreshTokens.revocarPorUsuario(usuario.getId());
         resetTokens.revocarPorUsuario(usuario.getId());

@@ -40,6 +40,7 @@ class AuthIntegrationTest {
     @Autowired AuthService auth;
     @org.springframework.test.context.bean.override.mockito.MockitoSpyBean RefreshTokenService emisorRefresh;
     @Autowired UsuarioService usuarioService;
+    @Autowired CambioCorreoService cambioCorreo;
     @Autowired com.gg.turnlook.features.verificacion.VerificacionEmailService verificacionEmail;
     @Autowired com.gg.turnlook.features.verificacion.VerificacionRepository codigos;
     @Autowired PasswordResetService passwords;
@@ -394,18 +395,33 @@ class AuthIntegrationTest {
         }
     }
 
-    @Test void cambiarEmailRevocaSesionesYExigeVerificarElNuevo() {
+    @Test void cambioDeCorreoConfirmaElNuevoYNotificaElAnterior() throws Exception {
         var sesion = login();
-        var datos = new com.gg.turnlook.features.usuario.dto.UsuarioModificarDTO();
-        String nuevoEmail = UUID.randomUUID() + "@example.com";
-        datos.setEmail(nuevoEmail);
-        // Resolver el servicio real del contexto mantiene la transacción de modificación.
-        usuarioService.modificarUsuario(datos, usuario.getId(), usuario.getEmail());
+        String anterior = usuario.getEmail();
+        String nuevo = UUID.randomUUID() + "@example.com";
+        var codigo = org.mockito.ArgumentCaptor.forClass(String.class);
+        String datos = "{\"email\":\"" + nuevo + "\"}";
+        assertEquals(202, postAutenticado("/usuarios/cambio-email/solicitar", datos, sesion.getToken()).statusCode());
+        verify(email).enviarCodigoCambioCorreo(eq(nuevo), codigo.capture());
+        assertEquals(anterior, usuarios.findById(usuario.getId()).orElseThrow().getEmail());
+        verify(email, never()).enviarAvisoCambioCorreo(anyString());
+
+        String confirmacion = "{\"email\":\"" + nuevo + "\",\"codigo\":\"" + codigo.getValue() + "\"}";
+        assertEquals(204, postAutenticado("/usuarios/cambio-email/confirmar", confirmacion, sesion.getToken()).statusCode());
         var actualizado = usuarios.findById(usuario.getId()).orElseThrow();
-        assertEquals(nuevoEmail, actualizado.getEmail());
-        assertFalse(actualizado.isEmailVerificado());
+        assertEquals(nuevo, actualizado.getEmail());
+        assertTrue(actualizado.isEmailVerificado());
+        verify(email).enviarAvisoCambioCorreo(anterior);
         assertThrows(UnauthorizedException.class, () -> auth.renovar(sesion.getRefreshToken()));
-        assertThrows(EmailNoVerificadoException.class, () -> auth.login(new LoginDTO(nuevoEmail, PASSWORD)));
+        assertNotNull(auth.login(new LoginDTO(nuevo, PASSWORD)).getToken());
+    }
+
+    private java.net.http.HttpResponse<String> postAutenticado(String path, String body, String token) throws Exception {
+        var request = java.net.http.HttpRequest.newBuilder(java.net.URI.create("http://localhost:" + port + path))
+                .header("Content-Type", "application/json")
+                .header("Authorization", "Bearer " + token)
+                .POST(java.net.http.HttpRequest.BodyPublishers.ofString(body)).build();
+        return java.net.http.HttpClient.newHttpClient().send(request, java.net.http.HttpResponse.BodyHandlers.ofString());
     }
 
     @Test void verificarEmailIniciaSesionYElCodigoNoSePuedeReutilizar() throws Exception {
@@ -546,13 +562,21 @@ class AuthIntegrationTest {
         assertEquals(401, postConAcceso("/auth/verification-status", cuerpo, acceso).statusCode());
     }
 
-    @Test void unEmailAnteriorNoBloqueaElEnvioParaElEmailNuevo() {
-        pendiente(); solicitarCodigo();
-        String nuevoEmail = UUID.randomUUID() + "@example.com";
-        var datos = new com.gg.turnlook.features.usuario.dto.UsuarioModificarDTO(); datos.setEmail(nuevoEmail);
-        usuarioService.modificarUsuario(datos, usuario.getId(), usuario.getEmail());
-        var respuesta = verificacionEmail.solicitarConAcceso(nuevoEmail, ticket(), false);
-        assertTrue(respuesta.enviadoAhora());
-        verify(email).enviarCodigo(eq(nuevoEmail), anyString());
+    @Test void cambioDeCorreoBloqueaElCodigoTrasCincoIntentos() {
+        String anterior = usuario.getEmail();
+        String nuevo = UUID.randomUUID() + "@example.com";
+        var datos = new com.gg.turnlook.features.usuario.dto.UsuarioModificarDTO();
+        datos.setEmail(nuevo);
+        assertThrows(BadRequestException.class, () -> usuarioService.modificarUsuario(datos, usuario.getId(), anterior));
+        cambioCorreo.solicitar(anterior, nuevo);
+        var codigo = org.mockito.ArgumentCaptor.forClass(String.class);
+        verify(email).enviarCodigoCambioCorreo(eq(nuevo), codigo.capture());
+        String incorrecto = codigo.getValue().equals("123456") ? "654321" : "123456";
+        for (int intento = 0; intento < 5; intento++) {
+            assertThrows(BadRequestException.class, () -> cambioCorreo.confirmar(anterior, nuevo, incorrecto));
+        }
+        assertThrows(BadRequestException.class, () -> cambioCorreo.confirmar(anterior, nuevo, codigo.getValue()));
+        assertEquals(anterior, usuarios.findById(usuario.getId()).orElseThrow().getEmail());
+        verify(email, never()).enviarAvisoCambioCorreo(anyString());
     }
 }
