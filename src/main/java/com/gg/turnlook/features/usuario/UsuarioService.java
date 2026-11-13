@@ -296,13 +296,18 @@ public class UsuarioService {
 
         uPerfil.setFotoPerfil(FotoPerfilUsuario.resolver(u.getFotoPerfil()));
 
+        // Solo se exponen sucursales activas en las operaciones y vistas normales.
+        List<Sucursal> sucursalesEmpleadoActivas = u.getSucursalesEmpleado().stream()
+                .filter(Sucursal::isActivo)
+                .toList();
+
         // Las puntuaciones de todas las sucursales del usuario en una sola
         // query, en vez de dos por sucursal.
         Map<Integer, ResumenPuntuacion> puntuaciones =
                 reseniaService.getPuntuacionesSucursales(
-                        u.getSucursalesEmpleado().stream().map(Sucursal::getId).toList());
+                        sucursalesEmpleadoActivas.stream().map(Sucursal::getId).toList());
 
-        uPerfil.setSucursalesEmpleado(u.getSucursalesEmpleado().stream()
+        uPerfil.setSucursalesEmpleado(sucursalesEmpleadoActivas.stream()
                 .map(suc -> new SucursalMiniDTO(suc.getId(), suc.getNombre(),
                         suc.getCategoria().getCategoria().name(),
                         suc.getFotoPerfil() == null ? null : suc.getFotoPerfil().getFotoValida(),

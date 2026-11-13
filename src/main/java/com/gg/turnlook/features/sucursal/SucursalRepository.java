@@ -84,7 +84,8 @@ public interface SucursalRepository extends JpaRepository<Sucursal, Integer> {
     @EntityGraph(attributePaths = {"categoria", "fotoPerfil"})
     @Query("""
                 SELECT s FROM Sucursal s
-                WHERE EXISTS (
+                WHERE s.activo = true
+                AND EXISTS (
                     SELECT 1 FROM s.empleados e WHERE e.email = :email
                 )
             """)
@@ -94,7 +95,7 @@ public interface SucursalRepository extends JpaRepository<Sucursal, Integer> {
     // Variante usada por las validaciones de permisos: trae el empleador en la
     // misma query y evita el lazy load al comparar su email.
     @EntityGraph(attributePaths = {"empleador"})
-    @Query("SELECT s FROM Sucursal s WHERE s.id = :id")
+    @Query("SELECT s FROM Sucursal s WHERE s.id = :id AND s.activo = true")
     Optional<Sucursal> findByIdConEmpleador(@Param("id") Integer id);
 
 
@@ -102,7 +103,7 @@ public interface SucursalRepository extends JpaRepository<Sucursal, Integer> {
     // query, para que el mapeo no dispare consultas lazy por cada relacion.
     @EntityGraph(attributePaths = {
             "categoria", "fotoPerfil", "empleador", "empleados"})
-    @Query("SELECT s FROM Sucursal s WHERE s.id = :id")
+    @Query("SELECT s FROM Sucursal s WHERE s.id = :id AND s.activo = true")
     Optional<Sucursal> findByIdConDetalle(@Param("id") Integer id);
 
 

@@ -16,12 +16,13 @@ public interface ServicioRepository extends JpaRepository<Servicio, Integer> {
 
     // fotoPerfil viene con JOIN para no consultarla una vez por servicio.
     @EntityGraph(attributePaths = {"fotoPerfil"})
-    List<Servicio> findBySucursalIdAndActivoTrue(Integer sucursalId);
+    @Query("SELECT s FROM Servicio s WHERE s.sucursal.id = :sucursalId AND s.activo = true AND s.sucursal.activo = true")
+    List<Servicio> findBySucursalIdAndActivoTrue(@Param("sucursalId") Integer sucursalId);
 
 
     // Detalle de servicio: foto y sucursal con su categoria en una sola query,
     // que es todo lo que necesita ServicioResponseDTO.
     @EntityGraph(attributePaths = {"fotoPerfil", "sucursal", "sucursal.categoria"})
-    @Query("SELECT s FROM Servicio s WHERE s.id = :id")
+    @Query("SELECT s FROM Servicio s WHERE s.id = :id AND s.activo = true AND s.sucursal.activo = true")
     Optional<Servicio> findByIdConDetalle(@Param("id") Integer id);
 }
