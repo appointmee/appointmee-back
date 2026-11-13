@@ -122,6 +122,11 @@ Los controladores se encuentran en `src/main/java/com/gg/turnlook/Backend/Contro
 | `SPRING_DATASOURCE_PASSWORD` | Contraseña de base de datos |
 | `MP_ACCESS_TOKEN` | Credencial privada de Mercado Pago |
 | `JWT_SECRET` | Clave para firmar tokens JWT |
+| `CLOUDINARY_CLOUD_NAME` | Nombre del cloud de Cloudinary |
+| `CLOUDINARY_API_KEY` | API key de Cloudinary |
+| `CLOUDINARY_API_SECRET` | API secret de Cloudinary |
+| `RESEND_API_KEY` | Credencial del proveedor de correo |
+| `RESEND_FROM` | Remitente del correo |
 
 Ejemplo de formato local (reemplazá los valores por credenciales propias):
 
@@ -134,6 +139,11 @@ export JWT_SECRET=<clave-segura-local>
 ```
 
 No reutilices credenciales de producción para desarrollo. Las cuentas de prueba deben crearse en un entorno controlado; no se publican contraseñas de cuentas en este README.
+
+
+### Base de datos e imagenes
+
+Hibernate esta configurado con ddl-auto=validate, por lo que el esquema debe ser compatible antes de iniciar. Ejecuta una sola vez los scripts de src/main/resources/db/ (incluyendo imagenes_cloudinary.sql) sobre PostgreSQL. Cloudinary es el unico proveedor de imagenes: define CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY y CLOUDINARY_API_SECRET antes de arrancar; sin ellas la aplicacion no inicia.
 
 ## Pruebas
 

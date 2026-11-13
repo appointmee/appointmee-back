@@ -76,3 +76,17 @@ surefire-reports/
 *.pid
 *.seed
 *.cache
+
+.env
+.env.*
+!.env.example
+
+
+###Angular###
+
+node_modules/
+.angular/
+dist/
+
+# Configuración local con credenciales
+**/.vscode/launch.json
