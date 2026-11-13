@@ -1,8 +1,8 @@
-package com.gg.turnlook.Backend.Controllers;
+package com.gg.turnlook.features.observabilidad;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.gg.turnlook.Backend.DTO.Observabilidad.NotFoundEventDTO;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.ObjectMapper;
+import com.gg.turnlook.features.observabilidad.dto.NotFoundEventDTO;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -41,7 +41,7 @@ public class ObservabilidadController {
         try {
             // Una línea JSON facilita su búsqueda y retención en los logs del hosting.
             logger.info("{}", objectMapper.writeValueAsString(logEvent));
-        } catch (JsonProcessingException exception) {
+        } catch (JacksonException exception) {
             logger.warn("No se pudo serializar un evento de ruta 404", exception);
         }
 

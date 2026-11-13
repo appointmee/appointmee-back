@@ -1,4 +1,4 @@
-package com.gg.turnlook.Backend.DTO.Observabilidad;
+package com.gg.turnlook.features.observabilidad.dto;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
