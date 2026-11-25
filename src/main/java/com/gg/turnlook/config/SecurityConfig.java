@@ -86,6 +86,11 @@ public class SecurityConfig {
                                 "/usuarios/crear",
                                 "/observabilidad/404",
 
+                                // El handshake HTTP es público: la autenticación
+                                // del chat se hace en el frame STOMP CONNECT.
+                                "/ws",
+                                "/ws/**",
+
                                 "/pagos/webhook",  // prueba rapida fast flash
 
                                 // para swagger

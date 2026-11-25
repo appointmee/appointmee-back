@@ -16,6 +16,10 @@ public interface MensajeRepository extends JpaRepository<Mensaje, Long> {
     List<Mensaje> findByConversacionIdAndIdLessThanOrderByIdDesc(
             Integer conversacionId, Long id, Pageable pageable);
 
+    /** Recuperación después de una reconexión. */
+    List<Mensaje> findByConversacionIdAndIdGreaterThanOrderByIdAsc(
+            Integer conversacionId, Long id, Pageable pageable);
+
     Optional<Mensaje> findTopByConversacionIdOrderByIdDesc(Integer conversacionId);
 
     Optional<Mensaje> findByConversacionIdAndClienteMensajeId(

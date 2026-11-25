@@ -46,9 +46,10 @@ public class ChatController {
     public ResponseEntity<List<MensajeResponseDTO>> listarMensajes(
             @PathVariable("id") Integer id,
             @RequestParam(name = "beforeId", required = false) Long beforeId,
+            @RequestParam(name = "afterId", required = false) Long afterId,
             @RequestParam(name = "size", defaultValue = "30") int size,
             @AuthenticationPrincipal String email) {
-        return ResponseEntity.ok(chatService.listarMensajes(id, beforeId, size, email));
+        return ResponseEntity.ok(chatService.listarMensajes(id, beforeId, afterId, size, email));
     }
 
     @PostMapping("/{id}/mensajes")

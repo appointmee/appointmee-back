@@ -38,6 +38,11 @@ public class ChatAccesoService {
         return participanteRepo.findByUsuarioEmailOrderByConversacionIdDesc(emailDelParticipante);
     }
 
+    /** Para el interceptor WS: no lanza excepción, solo responde sí/no. */
+    public boolean esParticipante(Integer conversacionId, String email) {
+        return participanteRepo.findByConversacionIdAndUsuarioEmail(conversacionId, email).isPresent();
+    }
+
     public void crearParticipantes(Conversacion conversacion, Usuario cliente, Usuario profesional) {
         crearParticipante(conversacion, cliente);
         crearParticipante(conversacion, profesional);

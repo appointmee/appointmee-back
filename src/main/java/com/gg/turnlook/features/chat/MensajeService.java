@@ -1,6 +1,7 @@
 package com.gg.turnlook.features.chat;
 
 import com.gg.turnlook.common.exception.BadRequestException;
+import com.gg.turnlook.common.exception.NotFoundException;
 import com.gg.turnlook.features.chat.dto.MensajeCrearDTO;
 import com.gg.turnlook.features.chat.dto.MensajeResponseDTO;
 import java.util.ArrayList;
@@ -23,7 +24,7 @@ public class MensajeService {
     private final ChatMapper mapper;
 
     @Transactional
-    public List<MensajeResponseDTO> listar(Integer conversacionId, Long beforeId,
+    public List<MensajeResponseDTO> listar(Integer conversacionId, Long beforeId, Long afterId,
                                            int size, String email) {
         Conversacion conversacion = acceso.buscarConversacion(conversacionId);
         ConversacionParticipante participante = acceso.participante(conversacion.getId(), email);
@@ -34,6 +35,15 @@ public class MensajeService {
 
         int limite = Math.min(Math.max(size, 1), 100);
         Pageable pageable = PageRequest.of(0, limite);
+
+        // afterId se usa al reconectar: devuelve lo perdido en orden ascendente.
+        if (afterId != null) {
+            return mensajeRepo.findByConversacionIdAndIdGreaterThanOrderByIdAsc(
+                            conversacion.getId(), afterId, pageable).stream()
+                    .map(mapper::aMensaje)
+                    .toList();
+        }
+
         List<Mensaje> mensajes = beforeId == null
                 ? mensajeRepo.findByConversacionIdOrderByIdDesc(conversacion.getId(), pageable)
                 : mensajeRepo.findByConversacionIdAndIdLessThanOrderByIdDesc(
@@ -64,6 +74,28 @@ public class MensajeService {
                         conversacion.getId(), dto.getClienteMensajeId())
                 .map(mapper::aMensaje)
                 .orElseGet(() -> persistir(conversacion, participante, contenido, dto));
+    }
+
+    /** ACK del destinatario: el mensaje ajeno pasa de ENVIADO a ENTREGADO. */
+    @Transactional
+    public MensajeResponseDTO marcarEntregado(Integer conversacionId, Long mensajeId,
+                                              String email) {
+        Conversacion conversacion = acceso.buscarConversacion(conversacionId);
+        ConversacionParticipante participante = acceso.participante(conversacion.getId(), email);
+
+        Mensaje mensaje = mensajeRepo.findById(mensajeId)
+                .orElseThrow(() -> new NotFoundException("No se encontró el mensaje"));
+        if (!mensaje.getConversacion().getId().equals(conversacion.getId())) {
+            throw new BadRequestException("El mensaje no pertenece a la conversación");
+        }
+        if (mensaje.getAutor().getId().equals(participante.getUsuario().getId())) {
+            return mapper.aMensaje(mensaje);
+        }
+        if (mensaje.getEstadoEntrega() == EstadoEntrega.ENVIADO) {
+            mensaje.setEstadoEntrega(EstadoEntrega.ENTREGADO);
+            mensajeRepo.save(mensaje);
+        }
+        return mapper.aMensaje(mensaje);
     }
 
     @Transactional
