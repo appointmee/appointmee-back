@@ -1,6 +1,7 @@
 package com.gg.turnlook.features.chat;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -16,6 +17,7 @@ import com.gg.turnlook.common.exception.ForbiddenException;
 import com.gg.turnlook.common.exception.NotFoundException;
 import com.gg.turnlook.features.chat.dto.ConversacionCrearDTO;
 import com.gg.turnlook.features.chat.dto.ConversacionDetalleDTO;
+import com.gg.turnlook.features.chat.dto.ConversacionResumenDTO;
 import com.gg.turnlook.features.chat.dto.MensajeCrearDTO;
 import com.gg.turnlook.features.sucursal.Sucursal;
 import com.gg.turnlook.features.servicio.Servicio;
@@ -291,5 +293,71 @@ class ChatPermisosTest {
         service.enviar(50, new MensajeCrearDTO("hola", idCliente), "cliente@example.com");
 
         verify(mensajeRepo, never()).save(any(Mensaje.class));
+    }
+
+    @Test
+    void listarIncluyeServicioClienteYProfesionalDelTurno() {
+        when(servicio.getNombre()).thenReturn("Corte de cabello");
+
+        ConversacionParticipante participante = participanteDeCliente();
+        when(usuarioService.listarUsuarioPorEmail("cliente@example.com")).thenReturn(cliente);
+        when(participanteRepo.findByUsuarioEmailOrderByConversacionIdDesc("cliente@example.com"))
+                .thenReturn(List.of(participante));
+        when(participanteRepo.findByConversacionId(50)).thenReturn(List.of(participante));
+        when(mensajeRepo.countByConversacionIdAndAutorEmailNot(50, "cliente@example.com"))
+                .thenReturn(0L);
+
+        List<ConversacionResumenDTO> resumenes = service.listar("cliente@example.com");
+
+        assertEquals(1, resumenes.size());
+        ConversacionResumenDTO resumen = resumenes.get(0);
+        assertEquals("Sucursal Centro", resumen.getSucursalNombre());
+        assertEquals(100, resumen.getTurnoId());
+        assertEquals("Corte de cabello", resumen.getServicioNombre());
+        assertEquals("Cliente Uno", resumen.getClienteNombre());
+        assertEquals("Empleado Cuatro", resumen.getProfesionalNombre());
+    }
+
+    @Test
+    void detalleIncluyeServicioClienteYProfesionalDelTurno() {
+        when(servicio.getNombre()).thenReturn("Corte de cabello");
+
+        ConversacionParticipante participante = participanteDeCliente();
+        when(conversacionRepo.findById(50)).thenReturn(Optional.of(conversacion));
+        when(participanteRepo.findByConversacionIdAndUsuarioEmail(50, "cliente@example.com"))
+                .thenReturn(Optional.of(participante));
+        when(participanteRepo.findByConversacionId(50)).thenReturn(List.of(participante));
+
+        ConversacionDetalleDTO detalle = service.obtener(50, "cliente@example.com");
+
+        assertEquals("Corte de cabello", detalle.getServicioNombre());
+        assertEquals("Cliente Uno", detalle.getClienteNombre());
+        assertEquals("Empleado Cuatro", detalle.getProfesionalNombre());
+    }
+
+    @Test
+    void conversacionSinTurnoNoExponeServicioNiProfesional() {
+        ConversacionParticipante participante = participanteDeCliente();
+        when(conversacion.getTurno()).thenReturn(null);
+        when(usuarioService.listarUsuarioPorEmail("cliente@example.com")).thenReturn(cliente);
+        when(participanteRepo.findByUsuarioEmailOrderByConversacionIdDesc("cliente@example.com"))
+                .thenReturn(List.of(participante));
+        when(participanteRepo.findByConversacionId(50)).thenReturn(List.of(participante));
+        when(mensajeRepo.countByConversacionIdAndAutorEmailNot(50, "cliente@example.com"))
+                .thenReturn(0L);
+
+        ConversacionResumenDTO resumen = service.listar("cliente@example.com").get(0);
+
+        assertNull(resumen.getTurnoId());
+        assertNull(resumen.getServicioNombre());
+        assertNull(resumen.getClienteNombre());
+        assertNull(resumen.getProfesionalNombre());
+    }
+
+    private ConversacionParticipante participanteDeCliente() {
+        ConversacionParticipante participante = mock(ConversacionParticipante.class);
+        when(participante.getConversacion()).thenReturn(conversacion);
+        when(participante.getUsuario()).thenReturn(cliente);
+        return participante;
     }
 }
