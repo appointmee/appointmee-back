@@ -138,7 +138,8 @@ public class SolicitudEmpleadoService {
                 s.getFotoPerfil() == null ? null : s.getFotoPerfil().getFotoValida(),
                 puntuacionDe(puntuaciones.get(s.getId())),
                 cantidadDe(puntuaciones.get(s.getId())),
-                DiasSemanaUtil.aNombres(s.getDiasApertura()));
+                DiasSemanaUtil.aNombres(s.getDiasApertura()),
+                s.getLatitud(), s.getLongitud());
 
         solicitudDTO.setSucursal(sucursal);
 

@@ -25,6 +25,10 @@ public class SucursalMiniDTO {
     private Long cantidadPuntuaciones;
     private List<String> diasApertura;
 
+    /// Pueden ser NULL en sucursales creadas antes de guardar la ubicacion.
+    private Double latitud;
+    private Double longitud;
+
 }
 
 

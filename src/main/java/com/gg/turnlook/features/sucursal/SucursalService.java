@@ -354,7 +354,8 @@ public class SucursalService {
                         suc.getFotoPerfil() == null ? null : suc.getFotoPerfil().getFotoValida(),
                         puntuacionDe(puntuaciones.get(suc.getId())),
                         cantidadDe(puntuaciones.get(suc.getId())),
-                        DiasSemanaUtil.aNombres(suc.getDiasApertura()))
+                        DiasSemanaUtil.aNombres(suc.getDiasApertura()),
+                        suc.getLatitud(), suc.getLongitud())
                 )
                 .toList());
 
@@ -465,6 +466,10 @@ public class SucursalService {
         dto.setDiasApertura(DiasSemanaUtil.aNombres(suc.getDiasApertura()));
 
         dto.setFotoPerfil(suc.getFotoPerfil() == null ? null : suc.getFotoPerfil().getFotoValida());
+
+        dto.setLatitud(suc.getLatitud());
+        dto.setLongitud(suc.getLongitud());
+        dto.setGooglePlaceId(suc.getGooglePlaceId());
 
         // Consulta anterior a la optimización. Reemplazada por getPuntuacionesSucursales.
         // dto.setPuntuacion(reseniaService.getPuntuacionPromedioSucursal(suc.getId()));
