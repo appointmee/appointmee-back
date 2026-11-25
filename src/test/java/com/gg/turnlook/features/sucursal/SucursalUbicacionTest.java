@@ -110,6 +110,21 @@ class SucursalUbicacionTest {
     }
 
     @Test
+    void direccionAceptaHasta255Caracteres() {
+        SucursalCrearDTO limite = crearDTO(-34, -58, "ChIJ_valido");
+        limite.setDireccion("A".repeat(255));
+        assertTrue(camposConError(limite).isEmpty());
+
+        SucursalCrearDTO excedida = crearDTO(-34, -58, "ChIJ_valido");
+        excedida.setDireccion("A".repeat(256));
+        assertTrue(camposConError(excedida).contains("direccion"));
+
+        SucursalModificarDTO modificacion = new SucursalModificarDTO();
+        modificacion.setDireccion("B".repeat(255));
+        assertTrue(camposConError(modificacion).isEmpty());
+    }
+
+    @Test
     void modificacionActualizaLosTresValoresDeUbicacion() {
         Sucursal suc = sucursalBase(true);
         prepararModificacion(suc);

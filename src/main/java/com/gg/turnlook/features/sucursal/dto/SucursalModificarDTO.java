@@ -16,7 +16,7 @@ public class SucursalModificarDTO {
     private String nombre;
 
 
-    @Size(min = 10, max = 100, message = "La direccion debe estar entre 10 y 100 caracteres")
+    @Size(min = 10, max = 255, message = "La direccion debe estar entre 10 y 255 caracteres")
     @Pattern(regexp = "^[a-zA-ZáéíóúÁÉÍÓÚüÜñÑªº\\d\\s.,#/()'&·°-]+$",
             message = "La direccion solo debe contener letras, numeros y caracteres habituales de direcciones")
     private String direccion;

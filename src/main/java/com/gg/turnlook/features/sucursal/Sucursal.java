@@ -37,7 +37,7 @@ public class Sucursal {
     @Column(nullable = false)
     private String nombre;
 
-    @Column(unique = true, nullable = false, length = 100)
+    @Column(unique = true, nullable = false, length = 255)
     private String direccion;
 
     @Column(nullable = true)
