@@ -99,11 +99,18 @@ public class ConversacionService {
                     .findFirst()
                     .orElse("Sin interlocutor");
 
+            Turno turno = conversacion.getTurno();
             resumenes.add(new ConversacionResumenDTO(
                     conversacion.getId(),
                     conversacion.getSucursal().getId(),
                     conversacion.getSucursal().getNombre(),
-                    conversacion.getTurno() != null ? conversacion.getTurno().getId() : null,
+                    turno != null ? turno.getId() : null,
+                    turno != null && turno.getServicio() != null
+                            ? turno.getServicio().getNombre() : null,
+                    turno != null && turno.getCliente() != null
+                            ? mapper.nombreCompleto(turno.getCliente()) : null,
+                    turno != null && turno.getEmpleado() != null
+                            ? mapper.nombreCompleto(turno.getEmpleado()) : null,
                     conversacion.getFechaCreacion(),
                     ultimo != null ? ultimo.getContenido() : null,
                     ultimo != null ? ultimo.getFechaCreacion() : null,

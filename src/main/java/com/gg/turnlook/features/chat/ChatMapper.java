@@ -24,13 +24,24 @@ public class ChatMapper {
                         rolDe(conversacion, p.getUsuario().getId())))
                 .toList();
 
+        Turno turno = conversacion.getTurno();
         return new ConversacionDetalleDTO(
                 conversacion.getId(),
                 conversacion.getSucursal().getId(),
                 conversacion.getSucursal().getNombre(),
-                conversacion.getTurno() != null ? conversacion.getTurno().getId() : null,
+                turno != null ? turno.getId() : null,
+                turno != null && turno.getServicio() != null
+                        ? turno.getServicio().getNombre() : null,
+                turno != null && turno.getCliente() != null
+                        ? nombreCompleto(turno.getCliente()) : null,
+                turno != null && turno.getEmpleado() != null
+                        ? nombreCompleto(turno.getEmpleado()) : null,
                 conversacion.getFechaCreacion(),
                 participantesDTO);
+    }
+
+    public String nombreCompleto(Usuario usuario) {
+        return (usuario.getNombre() + " " + usuario.getApellido()).trim();
     }
 
     public MensajeResponseDTO aMensaje(Mensaje mensaje) {
