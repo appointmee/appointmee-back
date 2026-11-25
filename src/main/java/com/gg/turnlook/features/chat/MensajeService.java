@@ -28,6 +28,7 @@ public class MensajeService {
                                            int size, String email) {
         Conversacion conversacion = acceso.buscarConversacion(conversacionId);
         ConversacionParticipante participante = acceso.participante(conversacion.getId(), email);
+        acceso.validarVentana(conversacion);
 
         // Al consultar el hilo, los mensajes ajenos pendientes pasan a ENTREGADO.
         mensajeRepo.marcarEntregados(conversacion.getId(), participante.getUsuario().getId(),
@@ -58,6 +59,7 @@ public class MensajeService {
     public MensajeResponseDTO enviar(Integer conversacionId, MensajeCrearDTO dto, String email) {
         Conversacion conversacion = acceso.buscarConversacion(conversacionId);
         ConversacionParticipante participante = acceso.participante(conversacion.getId(), email);
+        acceso.validarVentana(conversacion);
 
         String contenido = dto.getContenido() == null ? "" : dto.getContenido().trim();
         if (contenido.isEmpty()) {
@@ -82,6 +84,7 @@ public class MensajeService {
                                               String email) {
         Conversacion conversacion = acceso.buscarConversacion(conversacionId);
         ConversacionParticipante participante = acceso.participante(conversacion.getId(), email);
+        acceso.validarVentana(conversacion);
 
         Mensaje mensaje = mensajeRepo.findById(mensajeId)
                 .orElseThrow(() -> new NotFoundException("No se encontró el mensaje"));
@@ -102,6 +105,7 @@ public class MensajeService {
     public void marcarLeido(Integer conversacionId, String email) {
         Conversacion conversacion = acceso.buscarConversacion(conversacionId);
         ConversacionParticipante participante = acceso.participante(conversacion.getId(), email);
+        acceso.validarVentana(conversacion);
 
         Long ultimoMensajeId = conversacion.getUltimoMensajeId();
         if (ultimoMensajeId != null

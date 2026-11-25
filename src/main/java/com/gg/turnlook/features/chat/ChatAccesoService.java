@@ -2,7 +2,10 @@ package com.gg.turnlook.features.chat;
 
 import com.gg.turnlook.common.exception.ForbiddenException;
 import com.gg.turnlook.common.exception.NotFoundException;
+import com.gg.turnlook.features.turno.EstadoTurno;
+import com.gg.turnlook.features.turno.Turno;
 import com.gg.turnlook.features.usuario.Usuario;
+import java.time.LocalDateTime;
 import java.util.List;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -50,6 +53,38 @@ public class ChatAccesoService {
 
     public void guardar(ConversacionParticipante participante) {
         participanteRepo.save(participante);
+    }
+
+    /**
+     * El chat solo está disponible mientras el turno está activo y hasta 3 días
+     * después de finalizado. Se toma `fechaModificacionEstado` como fin del turno.
+     */
+    public boolean ventanaAbierta(Conversacion conversacion) {
+        return conversacion.getTurno() == null || ventanaAbierta(conversacion.getTurno());
+    }
+
+    public boolean ventanaAbierta(Turno turno) {
+        if (turno == null) return true;
+
+        EstadoTurno estado = turno.getEstado();
+        if (estado == EstadoTurno.CANCELADO || estado == EstadoTurno.PAGO_RECHAZADO) return false;
+        if (estado != EstadoTurno.REALIZADO) return true;
+
+        LocalDateTime fin = turno.getFechaModificacionEstado() != null
+                ? turno.getFechaModificacionEstado()
+                : turno.getFechaHora();
+        return fin != null && !LocalDateTime.now().isAfter(fin.plusDays(3));
+    }
+
+    public void validarVentana(Conversacion conversacion) {
+        validarVentana(conversacion.getTurno());
+    }
+
+    public void validarVentana(Turno turno) {
+        if (!ventanaAbierta(turno)) {
+            throw new ForbiddenException(
+                    "Esta conversación ya no está disponible. Solo podés chatear durante el turno y hasta 3 días después.");
+        }
     }
 
     private void crearParticipante(Conversacion conversacion, Usuario usuario) {

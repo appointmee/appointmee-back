@@ -63,6 +63,8 @@ public class ConversacionService {
             throw new BadRequestException("El cliente y el empleado no pueden ser la misma persona");
         }
 
+        acceso.validarVentana(turno);
+
         boolean esCliente = cliente.getId().equals(actual.getId());
         boolean esAtendedor = atendedor.getId().equals(actual.getId());
         if (!esCliente && !esAtendedor) {
@@ -83,6 +85,8 @@ public class ConversacionService {
         List<ConversacionResumenDTO> resumenes = new ArrayList<>();
         for (ConversacionParticipante participante : participaciones) {
             Conversacion conversacion = participante.getConversacion();
+            if (!acceso.ventanaAbierta(conversacion)) continue;
+
             Mensaje ultimo = conversacion.getUltimoMensajeId() == null
                     ? null
                     : mensajeRepo.findById(conversacion.getUltimoMensajeId()).orElse(null);
@@ -129,6 +133,7 @@ public class ConversacionService {
     public ConversacionDetalleDTO obtener(Integer conversacionId, String email) {
         Conversacion conversacion = acceso.buscarConversacion(conversacionId);
         acceso.participante(conversacion.getId(), email);
+        acceso.validarVentana(conversacion);
         return mapper.aDetalle(conversacion, acceso.participantes(conversacion.getId()));
     }
 
