@@ -24,8 +24,8 @@ public class ChatAccesoService {
                 .orElseThrow(() -> new NotFoundException("No se encontró la conversación"));
     }
 
-    public ConversacionParticipante participante(Integer conversacionId, String email) {
-        return participanteRepo.findByConversacionIdAndUsuarioEmail(conversacionId, email)
+    public ConversacionParticipante participante(Integer conversacionId, String emailDelParticipante) {
+        return participanteRepo.findByConversacionIdAndUsuarioEmail(conversacionId, emailDelParticipante)
                 .orElseThrow(() -> new ForbiddenException(
                         "No tenés permisos para acceder a esta conversación"));
     }
@@ -34,8 +34,8 @@ public class ChatAccesoService {
         return participanteRepo.findByConversacionId(conversacionId);
     }
 
-    public List<ConversacionParticipante> participacionesDe(String email) {
-        return participanteRepo.findByUsuarioEmailOrderByConversacionIdDesc(email);
+    public List<ConversacionParticipante> participacionesDe(String emailDelParticipante) {
+        return participanteRepo.findByUsuarioEmailOrderByConversacionIdDesc(emailDelParticipante);
     }
 
     /** Para el interceptor WS: no lanza excepción, solo responde sí/no. */
@@ -43,9 +43,9 @@ public class ChatAccesoService {
         return participanteRepo.findByConversacionIdAndUsuarioEmail(conversacionId, email).isPresent();
     }
 
-    public void crearParticipantes(Conversacion conversacion, Usuario cliente, Usuario atendedor) {
+    public void crearParticipantes(Conversacion conversacion, Usuario cliente, Usuario profesional) {
         crearParticipante(conversacion, cliente);
-        crearParticipante(conversacion, atendedor);
+        crearParticipante(conversacion, profesional);
     }
 
     public void guardar(ConversacionParticipante participante) {
