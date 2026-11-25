@@ -4,7 +4,7 @@ Guía operativa para agentes de IA que trabajan en **AppointMee Back**.
 Es el equivalente backend de `AGENTS.md` (que solo existe en el repo del front): mismas
 reglas de rama, commits, trazabilidad con Jira y calidad.
 
-> Última revisión: 2026-11-24, sobre `origin/develop` (`c2c6390`).
+> Última revisión: 2026-11-25, sobre `origin/develop` (`72719b0`).
 
 ---
 
@@ -57,7 +57,12 @@ src/main/java/com/gg/turnlook/
 │   ├── imagen/                  # Cloudinary
 │   ├── verificacion/            # email/OTP
 │   ├── estadisticas/            # /graficos
-│   └── observabilidad/          # reporte 404 y métricas
+│   ├── observabilidad/          # reporte 404 y métricas
+│   ├── chat/                    # conversaciones y mensajes (SCRUM-330…334)
+│   │   ├── ChatController / ChatService (fachada)
+│   │   ├── ConversacionService / MensajeService
+│   │   ├── ChatAccesoService / ChatMapper
+│   │   └── dto/                 # request/response del chat
 └── web/                         # HomeController
 
 src/main/resources/
@@ -65,6 +70,7 @@ src/main/resources/
 ├── static/                      # front legado servido por el back (*-folder, recursos)
 └── db/                          # scripts SQL de migración manual
     ├── auth_tokens.sql
+    ├── chat_conversaciones.sql  # conversaciones, participantes y mensajes
     ├── email_verificacion.sql
     ├── imagenes_cloudinary.sql
     ├── optimizacion_consultas.sql
@@ -95,6 +101,7 @@ src/test/js/                     # test JS auxiliar (formulario de imágenes)
 | `/graficos` | estadísticas administrador/empleador |
 | `/verificaciones` | códigos de verificación |
 | `/observabilidad` | reporte de 404 |
+| `/conversaciones` | chat cliente ↔ empleado que desarrolla el turno |
 
 ---
 
@@ -182,8 +189,34 @@ Reglas:
 - Base del PR: **`develop`**. Nunca `main`.
 - No force-push sobre ramas compartidas sin pedido explícito.
 - No commitear `.env`, `target/`, logs, IDE, secretos ni `pom.xml.save`.
-- Un commit = una funcionalidad coherente.
+- **Un commit = una funcionalidad coherente.** No dejar commits sueltos de ajustes
+  intermedios (cambiar una anotación de Lombok, mover un método, quitar un campo):
+  se absorben dentro del commit de la funcionalidad que los originó.
 - Para documentación con working tree sucio: `git worktree add` + rama `docs/<slug>`.
+
+#### Cómo ordenar los commits de una feature
+
+Antes de publicar, revisar `git log origin/develop..HEAD` y agrupar por responsabilidad.
+Ejemplo usado en el chat (SCRUM-331), 3 commits en vez de 7:
+
+```text
+feat(chat): modelar conversaciones, participantes y mensajes     # entidades + repos + SQL
+feat(chat): exponer API REST y reglas de participación del chat  # servicios + mapper + DTOs + controller
+test(chat): cubrir permisos, idempotencia y derivación de roles  # tests
+```
+
+Si ya se había pusheado el historial anterior:
+
+```bash
+git fetch origin develop
+git reset --mixed origin/develop    # conserva el working tree, suelta los commits
+git add <archivos de la funcionalidad 1> && git commit -m "feat(...): ..."
+git add <archivos de la funcionalidad 2> && git commit -m "feat(...): ..."
+git add <archivos de la funcionalidad 3> && git commit -m "test(...): ..."
+git push --force-with-lease origin HEAD   # SOLO en la rama propia, nunca en develop/main
+```
+
+Verificar después que el PR siga `MERGEABLE` y con la cantidad de commits esperada.
 - `main` solo recibe releases desde `develop`.
 
 ### Convención de commits
@@ -312,6 +345,45 @@ Swagger local: `http://localhost:8080/swagger-ui/index.html` y
 4. Pull obligatorio con rebase sobre `origin/develop` (`git pull --rebase origin develop`).
 5. Push + PR a `develop` con: qué cambió, endpoints/migraciones, cómo se probó, riesgos.
 6. Verificar PR (`baseRefName=develop`) y dejar issue en `En revisión`.
+
+### 4.9 Chat cliente/empleado (SCRUM-330…334)
+
+Historias: 331 modelo, 332 tiempo real, 333 vista, 334 acceso desde turno.
+
+**Decisión de participantes (no negociable sin pedido explícito):**
+
+- El chat es entre **quien solicita el turno** (`turno.cliente`) y **quien lo desarrolla**
+  (`turno.empleado`). El empleador participa solo si es el empleado asignado.
+- El alta exige `turnoId`. **No existe chat sin turno**; la sucursal se deriva del turno.
+- Si el turno no tiene empleado asignado → `409 Conflict`. No usar `sucursal.empleador`
+  como reemplazo.
+- El `rol` (`CLIENTE`/`EMPLEADO`) **no se persiste** en `conversacion_participantes`:
+  se deriva del turno en `ChatMapper`. `Usuario.roles` (`ERol`) es el rol global de la
+  cuenta, no el papel en el turno.
+
+**Estructura del feature `chat/`:**
+
+| Clase | Responsabilidad |
+|---|---|
+| `ChatController` | Endpoints `/conversaciones`, sin lógica de negocio |
+| `ChatService` | Fachada; mantiene la API estable para el controller |
+| `ConversacionService` | Alta idempotente, listado y detalle |
+| `MensajeService` | Envío deduplicado, historial paginado, estados de entrega |
+| `ChatAccesoService` | Único lugar con búsqueda y validación de participantes |
+| `ChatMapper` | Entidades → DTO y derivación del rol |
+
+Reglas al modificar el chat:
+
+1. Toda lectura/escritura pasa por `ChatAccesoService.participante()`; un tercero
+   recibe `403`. No duplicar esa validación en los servicios.
+2. El contenido se valida en el servicio (no vacío, máx. 2000 caracteres) y el envío
+   usa `clienteMensajeId` para deduplicar reintentos.
+3. `marcarEntregados` / `marcarLeidos` actualizan `EstadoEntrega`; el historial no
+   depende del `EstadoTurno`.
+4. El esquema vive en `db/chat_conversaciones.sql` con índices únicos por turno,
+   participante y `clienteMensajeId`. Sin ese script `ddl-auto=validate` no arranca.
+5. Tests: `ChatPermisosTest` cubre permisos, alta desde turno, idempotencia,
+   estados y derivación del rol. Extenderlo antes de tocar reglas de acceso.
 
 ---
 
