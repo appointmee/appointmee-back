@@ -36,6 +36,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -98,6 +99,9 @@ public class SucursalService {
             throw new ConflictException("La direccion ingresada ya existe");
         }
 
+        String googlePlaceId = normalizarPlaceId(sucursal.getGooglePlaceId());
+        validarPlaceIdUnico(googlePlaceId, null);
+
         Categoria cat = catRepo.findById(sucursal.getCategoriaId()).
                 orElseThrow(() -> new NotFoundException("No se encontró la categoria"));
 
@@ -110,9 +114,13 @@ public class SucursalService {
 
         suc.setDiasAperturaPorNombre(DiasSemanaUtil.aDias(sucursal.getDiasApertura()));
 
+        suc.setLatitud(sucursal.getLatitud());
+        suc.setLongitud(sucursal.getLongitud());
+        suc.setGooglePlaceId(googlePlaceId);
+
         suc.setFotoPerfil(imagenService.crearFotoPerfil(sucursal.getFotoUrl(), sucursal.getFotoPublicId()));
 
-        sucRepo.save(suc);
+        guardarConUnicidadDePlaceId(suc);
     }
 
 
@@ -123,6 +131,24 @@ public class SucursalService {
 
         if (!suc.getEmpleador().getEmail().equals(empleadorEmail)) {
             throw new ForbiddenException("No tenes permisos");
+        }
+
+        boolean latitudEnviada = sucursal.getLatitud() != null;
+        boolean longitudEnviada = sucursal.getLongitud() != null;
+        boolean placeIdEnviado = sucursal.getGooglePlaceId() != null;
+        boolean ubicacionCompleta = latitudEnviada && longitudEnviada && placeIdEnviado
+                && !sucursal.getGooglePlaceId().isBlank();
+
+        if ((latitudEnviada || longitudEnviada || placeIdEnviado) && !ubicacionCompleta) {
+            throw new BadRequestException("La ubicacion debe enviarse completa: latitud, longitud y Google Place ID");
+        }
+
+        boolean direccionCambia = sucursal.getDireccion() != null
+                && !sucursal.getDireccion().equalsIgnoreCase(suc.getDireccion());
+
+        if (direccionCambia && suc.tieneUbicacion() && !ubicacionCompleta) {
+            throw new BadRequestException("Al cambiar la direccion de una sucursal con ubicacion "
+                    + "debe enviar latitud, longitud y Google Place ID");
         }
 
         if (sucursal.getCategoriaId() != null) {
@@ -153,6 +179,16 @@ public class SucursalService {
             suc.setDiasAperturaPorNombre(DiasSemanaUtil.aDias(sucursal.getDiasApertura()));
         }
 
+        if (ubicacionCompleta) {
+            String googlePlaceId = normalizarPlaceId(sucursal.getGooglePlaceId());
+            if (!googlePlaceId.equals(suc.getGooglePlaceId())) {
+                validarPlaceIdUnico(googlePlaceId, suc.getId());
+            }
+            suc.setLatitud(sucursal.getLatitud());
+            suc.setLongitud(sucursal.getLongitud());
+            suc.setGooglePlaceId(googlePlaceId);
+        }
+
         if (!suc.getHoraCierre().isAfter(suc.getHoraApertura())) {
             throw new BadRequestException("El horario de cierre tiene que ser posterior al de apertura");
         }
@@ -162,7 +198,46 @@ public class SucursalService {
             imagenService.cambiarFotoPerfilSucursal(suc, sucursal.getFotoUrl(), sucursal.getFotoPublicId());
         }
 
-        sucRepo.save(suc);
+        guardarConUnicidadDePlaceId(suc);
+    }
+
+
+    /// El Place ID viaja tal cual lo devuelve Google; sacar espacios evita que
+    /// el mismo lugar se guarde dos veces con distinta cantidad de espacios.
+
+    private static String normalizarPlaceId(String googlePlaceId) {
+        return googlePlaceId == null ? null : googlePlaceId.trim();
+    }
+
+
+    private void validarPlaceIdUnico(String googlePlaceId, Integer idExcluido) {
+
+        boolean existe = idExcluido == null
+                ? sucRepo.existsByGooglePlaceId(googlePlaceId)
+                : sucRepo.existsByGooglePlaceIdAndIdNot(googlePlaceId, idExcluido);
+
+        if (existe) {
+            throw new ConflictException("El Google Place ID ya esta asociado a otra sucursal");
+        }
+    }
+
+
+    /// El indice parcial de PostgreSQL es la ultima linea de defensa; si una
+    /// insercion/concurrencia lo viola, lo traducimos al mismo 409 que el
+    /// chequeo previo en vez de dejar que caiga en el error generico.
+
+    private void guardarConUnicidadDePlaceId(Sucursal sucursal) {
+        try {
+            sucRepo.save(sucursal);
+        } catch (DataIntegrityViolationException e) {
+            Throwable causa = e.getMostSpecificCause();
+            String mensaje = causa.getMessage() == null
+                    ? "" : causa.getMessage().toLowerCase(java.util.Locale.ROOT);
+            if (mensaje.contains("google_place_id") || mensaje.contains("ux_sucursales_google_place_id")) {
+                throw new ConflictException("El Google Place ID ya esta asociado a otra sucursal");
+            }
+            throw e;
+        }
     }
 
 
@@ -279,7 +354,8 @@ public class SucursalService {
                         suc.getFotoPerfil() == null ? null : suc.getFotoPerfil().getFotoValida(),
                         puntuacionDe(puntuaciones.get(suc.getId())),
                         cantidadDe(puntuaciones.get(suc.getId())),
-                        DiasSemanaUtil.aNombres(suc.getDiasApertura()))
+                        DiasSemanaUtil.aNombres(suc.getDiasApertura()),
+                        suc.getLatitud(), suc.getLongitud())
                 )
                 .toList());
 
@@ -390,6 +466,10 @@ public class SucursalService {
         dto.setDiasApertura(DiasSemanaUtil.aNombres(suc.getDiasApertura()));
 
         dto.setFotoPerfil(suc.getFotoPerfil() == null ? null : suc.getFotoPerfil().getFotoValida());
+
+        dto.setLatitud(suc.getLatitud());
+        dto.setLongitud(suc.getLongitud());
+        dto.setGooglePlaceId(suc.getGooglePlaceId());
 
         // Consulta anterior a la optimización. Reemplazada por getPuntuacionesSucursales.
         // dto.setPuntuacion(reseniaService.getPuntuacionPromedioSucursal(suc.getId()));

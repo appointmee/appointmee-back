@@ -313,7 +313,8 @@ public class UsuarioService {
                         suc.getFotoPerfil() == null ? null : suc.getFotoPerfil().getFotoValida(),
                         puntuacionDe(puntuaciones.get(suc.getId())),
                         cantidadDe(puntuaciones.get(suc.getId())),
-                        DiasSemanaUtil.aNombres(suc.getDiasApertura()))
+                        DiasSemanaUtil.aNombres(suc.getDiasApertura()),
+                        suc.getLatitud(), suc.getLongitud())
                 )
                 .toList());
 

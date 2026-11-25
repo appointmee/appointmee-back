@@ -37,7 +37,7 @@ public class Sucursal {
     @Column(nullable = false)
     private String nombre;
 
-    @Column(unique = true, nullable = false)
+    @Column(unique = true, nullable = false, length = 255)
     private String direccion;
 
     @Column(nullable = true)
@@ -66,6 +66,19 @@ public class Sucursal {
 
     @Column(nullable = false)
     private boolean activo = true;
+
+
+    /// Ubicacion de la sucursal. Las sucursales creadas antes de esta funcionalidad
+    /// pueden tener los tres campos en NULL, por eso son opcionales a nivel JPA.
+
+    @Column(name = "latitud", nullable = true)
+    private Double latitud;
+
+    @Column(name = "longitud", nullable = true)
+    private Double longitud;
+
+    @Column(name = "google_place_id", nullable = true, length = 255)
+    private String googlePlaceId;
 
 
     @OneToOne(fetch = FetchType.LAZY)
@@ -110,6 +123,27 @@ public class Sucursal {
     public boolean abreElDia(DayOfWeek dia) {
         return this.diasApertura == null || this.diasApertura.isEmpty()
                 || this.diasApertura.contains(dia);
+    }
+
+
+    /// True si la sucursal tiene algun dato de ubicacion guardado (incluso en
+    /// sucursales viejas cargadas a mano con datos incompletos).
+
+    public boolean tieneUbicacion() {
+        return latitud != null || longitud != null || tienePlaceId();
+    }
+
+
+    /// La ubicacion completa son los tres valores juntos; la app nunca persiste
+    /// una ubicacion parcial.
+
+    public boolean tieneUbicacionCompleta() {
+        return latitud != null && longitud != null && tienePlaceId();
+    }
+
+
+    private boolean tienePlaceId() {
+        return googlePlaceId != null && !googlePlaceId.isBlank();
     }
 
 

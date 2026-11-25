@@ -45,4 +45,9 @@ public class SucursalResponseDTO {
      private String fotoPerfil;
      private List<ImagenResponseDTO> imagenes;
 
+     /// Pueden ser NULL en sucursales creadas antes de guardar la ubicacion.
+     private Double latitud;
+     private Double longitud;
+     private String googlePlaceId;
+
 }

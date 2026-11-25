@@ -4,6 +4,7 @@ import com.gg.turnlook.features.sucursal.categoria.Categoria;
 import com.gg.turnlook.features.sucursal.categoria.ECategoria;
 import jakarta.persistence.EntityManager;
 import java.time.LocalTime;
+import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.junit.jupiter.api.Test;
@@ -51,6 +52,44 @@ class SucursalBusquedaTest {
         guardar("Barber House", true, ECategoria.BARBERIA);
         assertTrue(repository.findByNombreContainingIgnoreCaseAndActivoTrue("barber%").isEmpty());
         assertTrue(repository.findByNombreContainingIgnoreCaseAndActivoTrue("barber_").isEmpty());
+    }
+
+    @Test
+    void persisteUbicacionYConsultaSucursalesSinUbicacion() {
+        Sucursal conUbicacion = guardar("Sucursal con ubicacion", true, ECategoria.BARBERIA);
+        conUbicacion.setLatitud(-34.6037);
+        conUbicacion.setLongitud(-58.3816);
+        conUbicacion.setGooglePlaceId("ChIJ_ubicada");
+        repository.saveAndFlush(conUbicacion);
+        guardar("Sucursal vieja sin ubicacion", true, ECategoria.BARBERIA);
+        entityManager.clear();
+
+        List<Sucursal> activas = repository.findByActivoTrue();
+
+        Sucursal cargada = activas.stream()
+                .filter(s -> s.getId().equals(conUbicacion.getId())).findFirst().orElseThrow();
+        assertEquals(-34.6037, cargada.getLatitud());
+        assertEquals(-58.3816, cargada.getLongitud());
+        assertEquals("ChIJ_ubicada", cargada.getGooglePlaceId());
+
+        Sucursal vieja = activas.stream()
+                .filter(s -> "Sucursal vieja sin ubicacion".equals(s.getNombre()))
+                .findFirst().orElseThrow();
+        assertNull(vieja.getLatitud());
+        assertNull(vieja.getLongitud());
+        assertNull(vieja.getGooglePlaceId());
+    }
+
+    @Test
+    void existeGooglePlaceIdExcluyendoLaPropiaSucursal() {
+        Sucursal sucursal = guardar("Sucursal con place id", true, ECategoria.BARBERIA);
+        sucursal.setGooglePlaceId("ChIJ_unico");
+        repository.saveAndFlush(sucursal);
+
+        assertTrue(repository.existsByGooglePlaceId("ChIJ_unico"));
+        assertFalse(repository.existsByGooglePlaceId("ChIJ_otro"));
+        assertTrue(repository.existsByGooglePlaceIdAndIdNot("ChIJ_unico", 0));
+        assertFalse(repository.existsByGooglePlaceIdAndIdNot("ChIJ_unico", sucursal.getId()));
     }
 
     private Sucursal guardar(String nombre, boolean activo, ECategoria tipo) {
