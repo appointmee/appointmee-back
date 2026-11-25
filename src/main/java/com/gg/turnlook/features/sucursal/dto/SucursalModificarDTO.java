@@ -16,9 +16,9 @@ public class SucursalModificarDTO {
     private String nombre;
 
 
-    @Size(min = 10, max = 60, message = "La direccion debe estar entre 10 y 60 caracteres")
-    @Pattern(regexp = "^[a-zA-ZáéíóúÁÉÍÓÚñÑ\\d\\s.,#-]+$",
-            message = "La direccion solo debe contener letras, numeros y espacios")
+    @Size(min = 10, max = 100, message = "La direccion debe estar entre 10 y 100 caracteres")
+    @Pattern(regexp = "^[a-zA-ZáéíóúÁÉÍÓÚüÜñÑªº\\d\\s.,#/()'&·°-]+$",
+            message = "La direccion solo debe contener letras, numeros y caracteres habituales de direcciones")
     private String direccion;
 
 
@@ -53,5 +53,20 @@ public class SucursalModificarDTO {
     private String fotoUrl;
 
     private String fotoPublicId;
+
+
+    /// La ubicacion es opcional en el PATCH.Si se envia, el servicio exige los
+    /// tres valores juntos para no dejar una sucursal con datos parciales.
+
+    @DecimalMin(value = "-90.0", message = "La latitud debe estar entre -90 y 90")
+    @DecimalMax(value = "90.0", message = "La latitud debe estar entre -90 y 90")
+    private Double latitud;
+
+    @DecimalMin(value = "-180.0", message = "La longitud debe estar entre -180 y 180")
+    @DecimalMax(value = "180.0", message = "La longitud debe estar entre -180 y 180")
+    private Double longitud;
+
+    @Size(max = 255, message = "El Google Place ID no puede superar los 255 caracteres")
+    private String googlePlaceId;
 
 }

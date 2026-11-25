@@ -17,9 +17,9 @@ public class SucursalCrearDTO {
     private String nombre;
 
     @NotBlank(message = "La direccion es obligatoria")
-    @Size(min = 10, max = 60, message = "La direccion debe estar entre 10 y 60 caracteres")
-    @Pattern(regexp = "^[a-zA-ZáéíóúÁÉÍÓÚñÑ\\d\\s.,#-]+$",
-             message = "La direccion solo debe contener letras y numeros")
+    @Size(min = 10, max = 100, message = "La direccion debe estar entre 10 y 100 caracteres")
+    @Pattern(regexp = "^[a-zA-ZáéíóúÁÉÍÓÚüÜñÑªº\\d\\s.,#/()'&·°-]+$",
+             message = "La direccion solo debe contener letras, numeros y caracteres habituales de direcciones")
     private String direccion;
 
     @Size(min = 8, max = 20, message = "El telefono debe estar entre los 8 y 20 digitos")
@@ -51,5 +51,23 @@ public class SucursalCrearDTO {
     private String fotoUrl;
 
     private String fotoPublicId;
+
+
+    /// La ubicacion es obligatoria para toda sucursal nueva: los tres valores
+    /// viajan juntos y se validan aqui, antes de llegar al servicio.
+
+    @NotNull(message = "La latitud es obligatoria")
+    @DecimalMin(value = "-90.0", message = "La latitud debe estar entre -90 y 90")
+    @DecimalMax(value = "90.0", message = "La latitud debe estar entre -90 y 90")
+    private Double latitud;
+
+    @NotNull(message = "La longitud es obligatoria")
+    @DecimalMin(value = "-180.0", message = "La longitud debe estar entre -180 y 180")
+    @DecimalMax(value = "180.0", message = "La longitud debe estar entre -180 y 180")
+    private Double longitud;
+
+    @NotBlank(message = "El Google Place ID es obligatorio")
+    @Size(max = 255, message = "El Google Place ID no puede superar los 255 caracteres")
+    private String googlePlaceId;
 
 }
