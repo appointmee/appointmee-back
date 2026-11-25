@@ -3,6 +3,7 @@ package com.gg.turnlook.features.chat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
@@ -21,10 +22,12 @@ import com.gg.turnlook.features.chat.dto.ConversacionResumenDTO;
 import com.gg.turnlook.features.chat.dto.MensajeCrearDTO;
 import com.gg.turnlook.features.sucursal.Sucursal;
 import com.gg.turnlook.features.servicio.Servicio;
+import com.gg.turnlook.features.turno.EstadoTurno;
 import com.gg.turnlook.features.turno.Turno;
 import com.gg.turnlook.features.turno.TurnoRepository;
 import com.gg.turnlook.features.usuario.Usuario;
 import com.gg.turnlook.features.usuario.UsuarioService;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -352,6 +355,37 @@ class ChatPermisosTest {
         assertNull(resumen.getServicioNombre());
         assertNull(resumen.getClienteNombre());
         assertNull(resumen.getProfesionalNombre());
+    }
+
+    @Test
+    void listarOcultaConversacionFueraDeVentana() {
+        when(turno.getEstado()).thenReturn(EstadoTurno.REALIZADO);
+        when(turno.getFechaModificacionEstado()).thenReturn(LocalDateTime.now().minusDays(4));
+
+        ConversacionParticipante participante = participanteDeCliente();
+        when(usuarioService.listarUsuarioPorEmail("cliente@example.com")).thenReturn(cliente);
+        when(participanteRepo.findByUsuarioEmailOrderByConversacionIdDesc("cliente@example.com"))
+                .thenReturn(List.of(participante));
+        when(participanteRepo.findByConversacionId(50)).thenReturn(List.of(participante));
+
+        assertTrue(service.listar("cliente@example.com").isEmpty());
+    }
+
+    @Test
+    void enviarFueraDeVentanaNoPersiste() {
+        when(turno.getEstado()).thenReturn(EstadoTurno.REALIZADO);
+        when(turno.getFechaModificacionEstado()).thenReturn(LocalDateTime.now().minusDays(4));
+
+        ConversacionParticipante participante = mock(ConversacionParticipante.class);
+        when(participante.getUsuario()).thenReturn(cliente);
+        when(conversacionRepo.findById(50)).thenReturn(Optional.of(conversacion));
+        when(participanteRepo.findByConversacionIdAndUsuarioEmail(50, "cliente@example.com"))
+                .thenReturn(Optional.of(participante));
+
+        MensajeCrearDTO dto = new MensajeCrearDTO("hola", UUID.randomUUID());
+        assertThrows(ForbiddenException.class,
+                () -> service.enviar(50, dto, "cliente@example.com"));
+        verify(mensajeRepo, never()).save(any(Mensaje.class));
     }
 
     private ConversacionParticipante participanteDeCliente() {
