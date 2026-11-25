@@ -50,15 +50,16 @@ public class JwtChannelInterceptor implements ChannelInterceptor {
             return autenticar(message, accessor);
         }
 
-        if (comando == StompCommand.SUBSCRIBE || comando == StompCommand.SEND) {
-            String email = emailDe(accessor);
-            if (email == null) {
+        if (comando != StompCommand.SUBSCRIBE && comando != StompCommand.SEND) {
+            return message;
+        }
+        String email = emailDe(accessor);
+        if (email == null) {
                 throw new AccessDeniedException("Sesión WebSocket no autenticada");
-            }
-            Integer conversacionId = extraerConversacionId(accessor.getDestination());
-            if (conversacionId != null && !acceso.esParticipante(conversacionId, email)) {
+        }
+        Integer conversacionId = extraerConversacionId(accessor.getDestination());
+        if (conversacionId != null && !acceso.esParticipante(conversacionId, email)) {
                 throw new AccessDeniedException("No sos participante de esta conversación");
-            }
         }
 
         return message;
