@@ -222,7 +222,7 @@ class ChatPermisosTest {
                 .thenReturn(Optional.empty());
 
         assertThrows(ForbiddenException.class,
-                () -> service.listarMensajes(50, null, 30, "tercero@example.com"));
+                () -> service.listarMensajes(50, null, null, 30, "tercero@example.com"));
     }
 
     @Test
