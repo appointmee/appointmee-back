@@ -33,8 +33,8 @@ public class ChatService {
     }
 
     public List<MensajeResponseDTO> listarMensajes(Integer conversacionId, Long beforeId,
-                                                  int size, String email) {
-        return mensajeService.listar(conversacionId, beforeId, size, email);
+                                                  Long afterId, int size, String email) {
+        return mensajeService.listar(conversacionId, beforeId, afterId, size, email);
     }
 
     public MensajeResponseDTO enviar(Integer conversacionId, MensajeCrearDTO dto, String email) {
