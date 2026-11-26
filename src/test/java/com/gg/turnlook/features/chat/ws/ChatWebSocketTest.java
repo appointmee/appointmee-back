@@ -2,6 +2,7 @@ package com.gg.turnlook.features.chat.ws;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -89,6 +90,71 @@ class ChatWebSocketTest {
         assertEquals("cliente@example.com", salida.getUser().getName());
         assertEquals("cliente@example.com",
                 salida.getSessionAttributes().get(JwtChannelInterceptor.ATRIBUTO_EMAIL));
+    }
+
+    @Test
+    void connectConservaLaMismaInstanciaDeAtributosDeSesion() {
+        jwtValido();
+        StompHeaderAccessor accessor = StompHeaderAccessor.create(StompCommand.CONNECT);
+        accessor.setNativeHeader("Authorization", "Bearer token");
+        java.util.Map<String, Object> atributos = new java.util.HashMap<>();
+        accessor.setSessionAttributes(atributos);
+
+        StompHeaderAccessor salida =
+                StompHeaderAccessor.wrap(interceptor.preSend(mensaje(accessor), canal));
+
+        assertSame(atributos, salida.getSessionAttributes());
+        assertEquals("cliente@example.com",
+                atributos.get(JwtChannelInterceptor.ATRIBUTO_EMAIL));
+    }
+
+    @Test
+    void subscribeNotificacionesPropiasPasa() {
+        StompHeaderAccessor accessor = StompHeaderAccessor.create(StompCommand.SUBSCRIBE);
+        accessor.setDestination("/topic/notificaciones/cliente@example.com");
+        accessor.setUser(new UsernamePasswordAuthenticationToken("cliente@example.com", null, List.of()));
+
+        assertNotNull(interceptor.preSend(mensaje(accessor), canal));
+    }
+
+    @Test
+    void subscribeNotificacionesDeOtroUsuarioSeRechaza() {
+        StompHeaderAccessor accessor = StompHeaderAccessor.create(StompCommand.SUBSCRIBE);
+        accessor.setDestination("/topic/notificaciones/victima@example.com");
+        accessor.setUser(new UsernamePasswordAuthenticationToken("cliente@example.com", null, List.of()));
+
+        assertThrows(AccessDeniedException.class,
+                () -> interceptor.preSend(mensaje(accessor), canal));
+    }
+
+    @Test
+    void sendANotificacionesAjenasSeRechaza() {
+        StompHeaderAccessor accessor = StompHeaderAccessor.create(StompCommand.SEND);
+        accessor.setDestination("/topic/notificaciones/victima@example.com");
+        accessor.setUser(new UsernamePasswordAuthenticationToken("cliente@example.com", null, List.of()));
+
+        assertThrows(AccessDeniedException.class,
+                () -> interceptor.preSend(mensaje(accessor), canal));
+    }
+
+    @Test
+    void subscribeConAtributoDeSesionSinPrincipalPasa() {
+        StompHeaderAccessor accessor = StompHeaderAccessor.create(StompCommand.SUBSCRIBE);
+        accessor.setDestination("/topic/notificaciones/cliente@example.com");
+        accessor.setSessionAttributes(java.util.Map.of(
+                JwtChannelInterceptor.ATRIBUTO_EMAIL, "cliente@example.com"));
+
+        assertNotNull(interceptor.preSend(mensaje(accessor), canal));
+    }
+
+    @Test
+    void subscribeNotificacionesConComodinSeRechaza() {
+        StompHeaderAccessor accessor = StompHeaderAccessor.create(StompCommand.SUBSCRIBE);
+        accessor.setDestination("/topic/notificaciones/**");
+        accessor.setUser(new UsernamePasswordAuthenticationToken("cliente@example.com", null, List.of()));
+
+        assertThrows(AccessDeniedException.class,
+                () -> interceptor.preSend(mensaje(accessor), canal));
     }
 
     @Test
