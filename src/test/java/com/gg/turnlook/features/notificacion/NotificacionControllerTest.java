@@ -48,7 +48,8 @@ class NotificacionControllerTest {
                         List.of(new NotificacionDTO(
                                 1, TipoNotificacion.RESERVA, "Turno confirmado",
                                 "Tu turno quedó confirmado.",
-                                LocalDateTime.of(2026, 11, 26, 10, 0), false)),
+                                LocalDateTime.of(2026, 11, 26, 10, 0), false,
+                                TipoDestinoNotificacion.TURNO, 77, 7)),
                         1, 5, 6, 2, 3));
 
         mockMvc.perform(get("/notificaciones")
@@ -63,7 +64,10 @@ class NotificacionControllerTest {
                 .andExpect(jsonPath("$.noLeidas").value(3))
                 .andExpect(jsonPath("$.contenido[0].tipo").value("RESERVA"))
                 .andExpect(jsonPath("$.contenido[0].titulo").value("Turno confirmado"))
-                .andExpect(jsonPath("$.contenido[0].leida").value(false));
+                .andExpect(jsonPath("$.contenido[0].leida").value(false))
+                .andExpect(jsonPath("$.contenido[0].destinoTipo").value("TURNO"))
+                .andExpect(jsonPath("$.contenido[0].destinoId").value(77))
+                .andExpect(jsonPath("$.contenido[0].sucursalId").value(7));
 
         verify(service).listar("ana@example.com", false, 1, 5);
     }

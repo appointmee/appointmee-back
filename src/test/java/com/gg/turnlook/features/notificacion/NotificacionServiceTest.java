@@ -135,6 +135,36 @@ class NotificacionServiceTest {
     }
 
     @Test
+    void guardaElDestinoConcretoEnLaEntidadYEnElDTO() {
+        Usuario ana = usuario(1, "ana@example.com");
+        when(notificacionRepository.save(any(Notificacion.class)))
+                .thenAnswer(invocacion -> invocacion.getArgument(0));
+
+        var dto = service.registrar(ana, TipoNotificacion.PAGO, "Pago aprobado",
+                "Tu pago fue aprobado.", TipoDestinoNotificacion.PAGO, 77, 7);
+
+        ArgumentCaptor<Notificacion> captor = ArgumentCaptor.forClass(Notificacion.class);
+        verify(notificacionRepository).save(captor.capture());
+        Notificacion guardada = captor.getValue();
+        assertEquals(TipoDestinoNotificacion.PAGO, guardada.getDestinoTipo());
+        assertEquals(77, guardada.getDestinoId());
+        assertEquals(7, guardada.getSucursalId());
+        assertEquals(TipoDestinoNotificacion.PAGO, dto.getDestinoTipo());
+        assertEquals(77, dto.getDestinoId());
+        assertEquals(7, dto.getSucursalId());
+    }
+
+    @Test
+    void rechazaUnDestinoSinIdentificador() {
+        Usuario ana = usuario(1, "ana@example.com");
+
+        assertThrows(BadRequestException.class,
+                () -> service.registrar(ana, TipoNotificacion.RESERVA, "Turno", "Nuevo turno",
+                        TipoDestinoNotificacion.TURNO, null, null));
+        verify(notificacionRepository, never()).save(any(Notificacion.class));
+    }
+
+    @Test
     void registraBuscandoAlDestinatarioActivoPorEmail() {
         Usuario ana = usuario(1, "ana@example.com");
         when(usuarioRepository.findByEmailAndActivoTrue("ana@example.com"))
