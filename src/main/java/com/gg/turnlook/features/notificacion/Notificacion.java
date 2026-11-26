@@ -63,7 +63,8 @@ public class Notificacion {
     @Enumerated(EnumType.STRING)
     @Column(name = "destino_tipo", length = 30)
     private TipoDestinoNotificacion destinoTipo;
-
+    
+    /** el registro específico dentro de la seccion destino tipo . */
     @Column(name = "destino_id")
     private Integer destinoId;
 
