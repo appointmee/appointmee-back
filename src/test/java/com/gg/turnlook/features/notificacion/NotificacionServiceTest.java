@@ -15,6 +15,7 @@ import static org.mockito.Mockito.when;
 import com.gg.turnlook.common.exception.BadRequestException;
 import com.gg.turnlook.common.exception.NotFoundException;
 import com.gg.turnlook.common.exception.UnauthorizedException;
+import com.gg.turnlook.features.notificacion.dto.ContadorNoLeidasDTO;
 import com.gg.turnlook.features.notificacion.dto.PaginaNotificacionesDTO;
 import com.gg.turnlook.features.usuario.Usuario;
 import com.gg.turnlook.features.usuario.UsuarioRepository;
@@ -40,7 +41,7 @@ class NotificacionServiceTest {
 
     @Test
     void listaConElEmailAutenticadoNormalizadoYElContadorDeLaBase() {
-        when(notificacionRepository.listarPorUsuario(eq("ana@example.com"), eq(null), any()))
+        when(notificacionRepository.listarPorUsuario(eq("ana@example.com"), eq(null), eq(null), any()))
                 .thenReturn(new PageImpl<>(
                         List.of(notificacion(1, "Turno confirmado")), Pageable.ofSize(20), 1));
         when(notificacionRepository.contarNoLeidas("ana@example.com")).thenReturn(2L);
@@ -55,30 +56,107 @@ class NotificacionServiceTest {
         assertEquals(1, pagina.getTotalElementos());
         assertEquals(1, pagina.getTotalPaginas());
         verify(notificacionRepository)
-                .listarPorUsuario(eq("ana@example.com"), eq(null), any(Pageable.class));
+                .listarPorUsuario(eq("ana@example.com"), eq(null), eq(null), any(Pageable.class));
         verify(notificacionRepository).contarNoLeidas("ana@example.com");
     }
 
     @Test
     void propagaElFiltroDeEstadoDeLecturaAlRepositorio() {
-        when(notificacionRepository.listarPorUsuario(anyString(), eq(true), any()))
+        when(notificacionRepository.listarPorUsuario(anyString(), eq(null), eq(true), any()))
                 .thenReturn(new PageImpl<>(List.of(), Pageable.ofSize(20), 0));
 
         service.listar("ana@example.com", true, 0, 20);
 
-        verify(notificacionRepository).listarPorUsuario(eq("ana@example.com"), eq(true), any());
-        verify(notificacionRepository, never()).listarPorUsuario(anyString(), eq(false), any());
+        verify(notificacionRepository)
+                .listarPorUsuario(eq("ana@example.com"), eq(null), eq(true), any());
+        verify(notificacionRepository, never())
+                .listarPorUsuario(anyString(), eq(null), eq(false), any());
+    }
+
+    @Test
+    void combinaElFiltroDeTipoConElDeEstadoSinPerderResultados() {
+        when(notificacionRepository.listarPorUsuario(
+                "ana@example.com", TipoNotificacion.PAGO, false, Pageable.ofSize(20)))
+                .thenReturn(new PageImpl<>(List.of(), Pageable.ofSize(20), 0));
+
+        service.listar("ana@example.com", TipoNotificacion.PAGO, false, 0, 20);
+
+        verify(notificacionRepository).listarPorUsuario(
+                "ana@example.com", TipoNotificacion.PAGO, false, Pageable.ofSize(20));
+    }
+
+    @Test
+    void marcaUnaNotificacionPropiaYDevuelveElContadorActualizado() {
+        Notificacion notificacion = notificacion(7, "Turno confirmado");
+        when(notificacionRepository.findByIdAndUsuarioEmail(7, "ana@example.com"))
+                .thenReturn(Optional.of(notificacion));
+        when(notificacionRepository.contarNoLeidas("ana@example.com")).thenReturn(3L);
+
+        ContadorNoLeidasDTO resultado = service.marcarLeida(" ANA@example.com ", 7);
+
+        assertTrue(notificacion.isLeida());
+        assertEquals(3, resultado.getNoLeidas());
+        verify(notificacionRepository).save(notificacion);
+    }
+
+    @Test
+    void marcarUnaNotificacionYaLeidaNoEsUnErrorYNoGuarda() {
+        Notificacion notificacion = notificacion(7, "Turno confirmado");
+        notificacion.setLeida(true);
+        when(notificacionRepository.findByIdAndUsuarioEmail(7, "ana@example.com"))
+                .thenReturn(Optional.of(notificacion));
+        when(notificacionRepository.contarNoLeidas("ana@example.com")).thenReturn(0L);
+
+        assertEquals(0, service.marcarLeida("ana@example.com", 7).getNoLeidas());
+
+        verify(notificacionRepository, never()).save(any(Notificacion.class));
+    }
+
+    @Test
+    void noPermiteMarcarUnaNotificacionDeOtroUsuario() {
+        when(notificacionRepository.findByIdAndUsuarioEmail(7, "ana@example.com"))
+                .thenReturn(Optional.empty());
+
+        assertThrows(NotFoundException.class, () -> service.marcarLeida("ana@example.com", 7));
+        verify(notificacionRepository, never()).save(any(Notificacion.class));
+    }
+
+    @Test
+    void rechazaMarcarSinUsuarioAutenticadoOConIdInvalido() {
+        assertThrows(UnauthorizedException.class, () -> service.marcarLeida(null, 7));
+        assertThrows(UnauthorizedException.class, () -> service.marcarLeida("  ", 7));
+        assertThrows(BadRequestException.class, () -> service.marcarLeida("ana@example.com", null));
+        assertThrows(BadRequestException.class, () -> service.marcarLeida("ana@example.com", 0));
+        verify(notificacionRepository, never()).findByIdAndUsuarioEmail(any(), anyString());
+    }
+
+    @Test
+    void marcaTodasLasPropiasDelTipoYDevuelveElContadorEnCero() {
+        when(notificacionRepository.contarNoLeidas("ana@example.com")).thenReturn(0L);
+
+        ContadorNoLeidasDTO resultado =
+                service.marcarTodasLeidas(" ANA@Example.com ", TipoNotificacion.RESERVA);
+
+        assertEquals(0, resultado.getNoLeidas());
+        verify(notificacionRepository)
+                .marcarTodasLeidas("ana@example.com", TipoNotificacion.RESERVA);
+    }
+
+    @Test
+    void rechazaMarcarTodasSinUsuarioAutenticado() {
+        assertThrows(UnauthorizedException.class, () -> service.marcarTodasLeidas(null, null));
+        verify(notificacionRepository, never()).marcarTodasLeidas(anyString(), any());
     }
 
     @Test
     void corrigePaginaNegativaYTopaElTamanoMaximo() {
-        when(notificacionRepository.listarPorUsuario(anyString(), eq(null), any()))
+        when(notificacionRepository.listarPorUsuario(anyString(), eq(null), eq(null), any()))
                 .thenReturn(new PageImpl<>(List.of(), Pageable.ofSize(20), 0));
 
         service.listar("ana@example.com", null, -3, 500);
 
         ArgumentCaptor<Pageable> captor = ArgumentCaptor.forClass(Pageable.class);
-        verify(notificacionRepository).listarPorUsuario(eq("ana@example.com"), eq(null),
+        verify(notificacionRepository).listarPorUsuario(eq("ana@example.com"), eq(null), eq(null),
                 captor.capture());
         assertEquals(0, captor.getValue().getPageNumber());
         assertEquals(NotificacionService.TAMANO_MAXIMO, captor.getValue().getPageSize());
@@ -86,13 +164,13 @@ class NotificacionServiceTest {
 
     @Test
     void usaElTamanoPorDefectoCuandoNoEsValido() {
-        when(notificacionRepository.listarPorUsuario(anyString(), eq(null), any()))
+        when(notificacionRepository.listarPorUsuario(anyString(), eq(null), eq(null), any()))
                 .thenReturn(new PageImpl<>(List.of(), Pageable.ofSize(20), 0));
 
         service.listar("ana@example.com", null, 0, -1);
 
         ArgumentCaptor<Pageable> captor = ArgumentCaptor.forClass(Pageable.class);
-        verify(notificacionRepository).listarPorUsuario(eq("ana@example.com"), eq(null),
+        verify(notificacionRepository).listarPorUsuario(eq("ana@example.com"), eq(null), eq(null),
                 captor.capture());
         assertEquals(NotificacionService.TAMANO_DEFECTO, captor.getValue().getPageSize());
     }
@@ -102,7 +180,7 @@ class NotificacionServiceTest {
         assertThrows(UnauthorizedException.class, () -> service.listar(null, null, 0, 20));
         assertThrows(UnauthorizedException.class, () -> service.listar("  ", null, 0, 20));
         assertThrows(UnauthorizedException.class, () -> service.contarNoLeidas(null));
-        verify(notificacionRepository, never()).listarPorUsuario(anyString(), any(), any());
+        verify(notificacionRepository, never()).listarPorUsuario(anyString(), any(), any(), any());
     }
 
     @Test
