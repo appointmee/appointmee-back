@@ -3,6 +3,7 @@ package com.gg.turnlook.features.solicitud.empleador;
 import com.gg.turnlook.common.exception.ConflictException;
 import com.gg.turnlook.common.exception.ForbiddenException;
 import com.gg.turnlook.common.exception.NotFoundException;
+import com.gg.turnlook.features.notificacion.NotificacionEventosService;
 import com.gg.turnlook.features.solicitud.EstadoSolicitud;
 import com.gg.turnlook.features.solicitud.empleador.dto.SolicitudEmpleadorCrearDTO;
 import com.gg.turnlook.features.solicitud.empleador.dto.SolicitudEmpleadorMiniDTO;
@@ -35,12 +36,14 @@ public class SolicitudEmpleadorService {
     private final SolicitudEmpleadorRepository solicitudEmpleadorRepo;
     private final UsuarioService usuarioService;
     private final RolService rolService;
+    private final NotificacionEventosService notificacionEventosService;
 
 
-    public SolicitudEmpleadorService(SolicitudEmpleadorRepository solicitudEmpleadorRepo, UsuarioService usuarioService, RolService rolService) {
+    public SolicitudEmpleadorService(SolicitudEmpleadorRepository solicitudEmpleadorRepo, UsuarioService usuarioService, RolService rolService, NotificacionEventosService notificacionEventosService) {
         this.solicitudEmpleadorRepo = solicitudEmpleadorRepo;
         this.usuarioService = usuarioService;
         this.rolService = rolService;
+        this.notificacionEventosService = notificacionEventosService;
     }
 
 
@@ -147,6 +150,8 @@ public class SolicitudEmpleadorService {
 
         sol.setEstado(EstadoSolicitud.APROBADA);
         solicitudEmpleadorRepo.save(sol);
+
+        notificacionEventosService.solicitudResuelta(sol, true);
     }
 
 
@@ -160,6 +165,8 @@ public class SolicitudEmpleadorService {
 
         sol.setEstado(EstadoSolicitud.RECHAZADA);
         solicitudEmpleadorRepo.save(sol);
+
+        notificacionEventosService.solicitudResuelta(sol, false);
     }
 
 

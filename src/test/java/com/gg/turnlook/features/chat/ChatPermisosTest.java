@@ -20,6 +20,7 @@ import com.gg.turnlook.features.chat.dto.ConversacionCrearDTO;
 import com.gg.turnlook.features.chat.dto.ConversacionDetalleDTO;
 import com.gg.turnlook.features.chat.dto.ConversacionResumenDTO;
 import com.gg.turnlook.features.chat.dto.MensajeCrearDTO;
+import com.gg.turnlook.features.notificacion.NotificacionEventosService;
 import com.gg.turnlook.features.sucursal.Sucursal;
 import com.gg.turnlook.features.servicio.Servicio;
 import com.gg.turnlook.features.turno.EstadoTurno;
@@ -62,7 +63,8 @@ class ChatPermisosTest {
         ConversacionService conversaciones = new ConversacionService(
                 conversacionRepo, mensajeRepo, usuarioService, turnoRepo, acceso, mapper);
         MensajeService mensajes = new MensajeService(
-                conversacionRepo, mensajeRepo, acceso, mapper);
+                conversacionRepo, mensajeRepo, acceso, mapper,
+                mock(NotificacionEventosService.class));
         service = new ChatService(conversaciones, mensajes);
 
         when(cliente.getId()).thenReturn(1);

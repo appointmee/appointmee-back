@@ -4,6 +4,7 @@ import com.gg.turnlook.common.exception.BadRequestException;
 import com.gg.turnlook.common.exception.NotFoundException;
 import com.gg.turnlook.features.chat.dto.MensajeCrearDTO;
 import com.gg.turnlook.features.chat.dto.MensajeResponseDTO;
+import com.gg.turnlook.features.notificacion.NotificacionEventosService;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -22,6 +23,7 @@ public class MensajeService {
     private final MensajeRepository mensajeRepo;
     private final ChatAccesoService acceso;
     private final ChatMapper mapper;
+    private final NotificacionEventosService notificacionEventosService;
 
     @Transactional
     public List<MensajeResponseDTO> listar(Integer conversacionId, Long beforeId, Long afterId,
@@ -132,6 +134,16 @@ public class MensajeService {
 
         conversacion.setUltimoMensajeId(mensaje.getId());
         conversacionRepo.save(conversacion);
+
+        // Sólo se avisa a la otra parte; el contenido del mensaje no se expone.
+        // La consulta de participantes se resuelve dentro del generador seguro.
+        notificacionEventosService.mensajeNuevo(conversacion.getId(), () ->
+                acceso.participantes(conversacion.getId()).stream()
+                        .map(ConversacionParticipante::getUsuario)
+                        .filter(usuario -> usuario != null && usuario.getId() != null)
+                        .filter(usuario -> !usuario.getId().equals(mensaje.getAutor().getId()))
+                        .toList());
+
         return mapper.aMensaje(mensaje);
     }
 }

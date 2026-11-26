@@ -14,6 +14,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
@@ -87,8 +88,14 @@ public class NotificacionService {
         return registrar(usuario, tipo, titulo, mensaje, null, null, null);
     }
 
-    /** Crea una notificación para un usuario ya resuelto con destino concreto. */
-    @Transactional
+    /**
+     * Crea una notificación para un usuario ya resuelto con destino concreto.
+     *
+     * <p>Se ejecuta en su propia transacción: la generación ante eventos es secundaria
+     * y un fallo aquí no debe marcar como rollback-only la operación de negocio que la
+     * disparó (por ejemplo, un webhook de pago o el envío de un mensaje).</p>
+     */
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public NotificacionDTO registrar(Usuario usuario, TipoNotificacion tipo,
                                      String titulo, String mensaje,
                                      TipoDestinoNotificacion destinoTipo, Integer destinoId,
