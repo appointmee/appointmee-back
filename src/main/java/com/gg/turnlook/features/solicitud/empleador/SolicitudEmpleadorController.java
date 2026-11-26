@@ -38,11 +38,15 @@ public class SolicitudEmpleadorController {
     }
 
 
+    /// Listado administrativo de todas las solicitudes (pendientes y
+    /// historicas). El parametro estado es opcional y se valida en el servicio.
     @PreAuthorize("hasRole('ADMINISTRADOR')")
     @GetMapping("/listar")
-    public ResponseEntity<?> listarSolicitudesEmpleador() {
+    public ResponseEntity<?> listarSolicitudesEmpleador(
+            @RequestParam(value = "estado", required = false) String estado) {
 
-        return ResponseEntity.ok().body(solicitudEmpleadorService.listarSolicitudesPendientes());
+        return ResponseEntity.ok().body(
+                solicitudEmpleadorService.listarSolicitudesAdministrativas(estado));
     }
 
 
