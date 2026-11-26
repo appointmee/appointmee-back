@@ -37,14 +37,23 @@ public class NotificacionService {
     private final NotificacionRepository notificacionRepository;
     private final UsuarioRepository usuarioRepository;
 
-    /** Devuelve una página de notificaciones propias, opcionalmente filtradas por estado. */
-    @Transactional(readOnly = true)
+    /** Devuelve una página de notificaciones propias filtrada sólo por estado. */
     public PaginaNotificacionesDTO listar(String email, Boolean leida, int pagina, int tamano) {
+        return listar(email, null, leida, pagina, tamano);
+    }
+
+    /**
+     * Devuelve una página de notificaciones propias. Los filtros por tipo y por
+     * estado se combinan: {@code null} en cualquiera significa "sin filtro".
+     */
+    @Transactional(readOnly = true)
+    public PaginaNotificacionesDTO listar(String email, TipoNotificacion tipo, Boolean leida,
+                                          int pagina, int tamano) {
         String autenticado = emailAutenticado(email);
         Pageable paginacion = PageRequest.of(Math.max(pagina, 0), tamanoValido(tamano));
 
         Page<Notificacion> resultado =
-                notificacionRepository.listarPorUsuario(autenticado, leida, paginacion);
+                notificacionRepository.listarPorUsuario(autenticado, tipo, leida, paginacion);
 
         return new PaginaNotificacionesDTO(
                 resultado.getContent().stream().map(this::aDTO).toList(),
@@ -53,6 +62,38 @@ public class NotificacionService {
                 resultado.getTotalElements(),
                 resultado.getTotalPages(),
                 notificacionRepository.contarNoLeidas(autenticado));
+    }
+
+    /**
+     * Marca como leída una notificación propia. Es idempotente: marcar dos veces
+     * la misma notificación no es un error. Una notificación de otra cuenta se
+     * reporta como no encontrada para no revelar su existencia.
+     */
+    @Transactional
+    public ContadorNoLeidasDTO marcarLeida(String email, Integer id) {
+        String autenticado = emailAutenticado(email);
+        if (id == null || id <= 0) {
+            throw new BadRequestException("El identificador de la notificación no es válido");
+        }
+
+        Notificacion notificacion = notificacionRepository
+                .findByIdAndUsuarioEmail(id, autenticado)
+                .orElseThrow(() -> new NotFoundException("Notificación no encontrada"));
+
+        if (!notificacion.isLeida()) {
+            notificacion.setLeida(true);
+            notificacionRepository.save(notificacion);
+        }
+
+        return new ContadorNoLeidasDTO(notificacionRepository.contarNoLeidas(autenticado));
+    }
+
+    /** Marca como leídas todas las notificaciones propias, opcionalmente de un tipo. */
+    @Transactional
+    public ContadorNoLeidasDTO marcarTodasLeidas(String email, TipoNotificacion tipo) {
+        String autenticado = emailAutenticado(email);
+        notificacionRepository.marcarTodasLeidas(autenticado, tipo);
+        return new ContadorNoLeidasDTO(notificacionRepository.contarNoLeidas(autenticado));
     }
 
     /** Contador de no leídas del usuario autenticado, calculado en la base. */
