@@ -2,6 +2,7 @@ package com.gg.turnlook.features.notificacion;
 
 import com.gg.turnlook.features.notificacion.dto.ContadorNoLeidasDTO;
 import com.gg.turnlook.features.notificacion.dto.PaginaNotificacionesDTO;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -18,13 +19,10 @@ import org.springframework.web.bind.annotation.RestController;
  */
 @RestController
 @RequestMapping("/notificaciones")
+@RequiredArgsConstructor
 public class NotificacionController {
 
     private final NotificacionService notificacionService;
-
-    public NotificacionController(NotificacionService notificacionService) {
-        this.notificacionService = notificacionService;
-    }
 
     @GetMapping
     public ResponseEntity<PaginaNotificacionesDTO> listar(

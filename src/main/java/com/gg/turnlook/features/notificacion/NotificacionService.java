@@ -9,6 +9,7 @@ import com.gg.turnlook.features.notificacion.dto.PaginaNotificacionesDTO;
 import com.gg.turnlook.features.usuario.Usuario;
 import com.gg.turnlook.features.usuario.UsuarioRepository;
 import java.util.Locale;
+import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -23,6 +24,7 @@ import org.springframework.transaction.annotation.Transactional;
  * (turnos, pagos, etc.), nunca el cliente a través de un endpoint público.</p>
  */
 @Service
+@RequiredArgsConstructor
 public class NotificacionService {
 
     public static final int TAMANO_DEFECTO = 20;
@@ -33,12 +35,6 @@ public class NotificacionService {
 
     private final NotificacionRepository notificacionRepository;
     private final UsuarioRepository usuarioRepository;
-
-    public NotificacionService(NotificacionRepository notificacionRepository,
-                               UsuarioRepository usuarioRepository) {
-        this.notificacionRepository = notificacionRepository;
-        this.usuarioRepository = usuarioRepository;
-    }
 
     /** Devuelve una página de notificaciones propias, opcionalmente filtradas por estado. */
     @Transactional(readOnly = true)
