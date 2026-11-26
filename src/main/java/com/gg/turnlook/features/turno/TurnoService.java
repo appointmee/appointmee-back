@@ -11,6 +11,7 @@ import com.gg.turnlook.features.resenia.dto.ReseniaResponseDTO;
 import com.gg.turnlook.features.servicio.Servicio;
 import com.gg.turnlook.features.servicio.ServicioService;
 import com.gg.turnlook.features.servicio.dto.ServicioTurnoResponseDTO;
+import com.gg.turnlook.features.notificacion.NotificacionEventosService;
 import com.gg.turnlook.features.sucursal.Sucursal;
 import com.gg.turnlook.features.sucursal.SucursalService;
 import com.gg.turnlook.features.turno.dto.DisponibilidadDTO;
@@ -58,14 +59,16 @@ public class TurnoService {
     private final ServicioService servicioService;
     private final SucursalService sucursalService;
     private final ReseniaService reseniaService;
+    private final NotificacionEventosService notificacionEventosService;
 
 
-    public TurnoService(TurnoRepository turnoRepo, UsuarioService usuarioService, ServicioService servicioService, SucursalService sucursalService, ReseniaService reseniaService) {
+    public TurnoService(TurnoRepository turnoRepo, UsuarioService usuarioService, ServicioService servicioService, SucursalService sucursalService, ReseniaService reseniaService, NotificacionEventosService notificacionEventosService) {
         this.turnoRepo = turnoRepo;
         this.usuarioService = usuarioService;
         this.servicioService = servicioService;
         this.sucursalService = sucursalService;
         this.reseniaService = reseniaService;
+        this.notificacionEventosService = notificacionEventosService;
     }
 
 
@@ -116,6 +119,9 @@ public class TurnoService {
         turnoFinal.setFechaModificacionEstado(LocalDateTime.now());
 
         turnoRepo.save(turnoFinal);
+
+        // US-NOT-04: la reserva ya quedó persistida; avisar es secundario.
+        notificacionEventosService.turnoReservado(turnoFinal);
     }
 
 
@@ -243,6 +249,8 @@ public class TurnoService {
         turno.setEstado(EstadoTurno.CANCELADO);
         turno.setFechaModificacionEstado(LocalDateTime.now());
         turnoRepo.save(turno);
+
+        notificacionEventosService.turnoCancelado(turno);
     }
 
 
@@ -268,6 +276,8 @@ public class TurnoService {
         turno.setEstado(EstadoTurno.REALIZADO);
         turno.setFechaModificacionEstado(LocalDateTime.now());
         turnoRepo.save(turno);
+
+        notificacionEventosService.turnoFinalizado(turno);
     }
 
 
@@ -277,8 +287,12 @@ public class TurnoService {
         List<Turno> vencidos = turnoRepo.findPendientesVencidos(EstadoTurno.PENDIENTE, limite);
         int cancelados = 0;
         for (Turno turno : vencidos) {
-            cancelados += turnoRepo.actualizarEstadoSiEs(
+            int actualizados = turnoRepo.actualizarEstadoSiEs(
                     turno.getId(), List.of(EstadoTurno.PENDIENTE), EstadoTurno.CANCELADO);
+            cancelados += actualizados;
+            if (actualizados > 0) {
+                notificacionEventosService.turnoCancelado(turno);
+            }
         }
         return cancelados;
     }
@@ -431,22 +445,36 @@ public class TurnoService {
         }
 
         reseniaService.guardarResenia(reseniaDto, turno);
+
+        notificacionEventosService.reseniaPublicada(turno);
     }
 
 
     @Transactional
     public EstadoTurno setearPagoAprobado(Integer turnoId) {
-        turnoRepo.actualizarEstadoSiEs(turnoId,
+        int actualizados = turnoRepo.actualizarEstadoSiEs(turnoId,
                 List.of(EstadoTurno.PENDIENTE, EstadoTurno.PAGO_RECHAZADO),
                 EstadoTurno.CONFIRMADO);
-        return estadoDeTurno(turnoId);
+        EstadoTurno estado = estadoDeTurno(turnoId);
+
+        if (actualizados > 0 && (estado == EstadoTurno.CONFIRMADO
+                || estado == EstadoTurno.REALIZADO)) {
+            notificacionEventosService.pagoAprobado(listarTurnoPorId(turnoId));
+        }
+        return estado;
     }
 
     @Transactional
     public EstadoTurno setearPagoRechazado(Integer turnoId) {
-        turnoRepo.actualizarEstadoSiEs(turnoId,
+        int actualizados = turnoRepo.actualizarEstadoSiEs(turnoId,
                 List.of(EstadoTurno.PENDIENTE), EstadoTurno.PAGO_RECHAZADO);
-        return estadoDeTurno(turnoId);
+        EstadoTurno estado = estadoDeTurno(turnoId);
+
+        // Sólo se avisa cuando el estado cambió: evita duplicados por webhooks repetidos.
+        if (actualizados > 0 && estado == EstadoTurno.PAGO_RECHAZADO) {
+            notificacionEventosService.pagoRechazado(listarTurnoPorId(turnoId));
+        }
+        return estado;
     }
 
     public EstadoTurno verificarTurnoParaWebhook(Integer turnoId) {
