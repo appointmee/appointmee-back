@@ -10,7 +10,6 @@ import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -18,6 +17,7 @@ import com.gg.turnlook.common.exception.BadRequestException;
 import com.gg.turnlook.common.exception.ConflictException;
 import com.gg.turnlook.common.exception.ForbiddenException;
 import com.gg.turnlook.features.solicitud.EstadoSolicitud;
+import com.gg.turnlook.features.solicitud.empleador.dto.PaginaSolicitudesEmpleadorDTO;
 import com.gg.turnlook.features.solicitud.empleador.dto.SolicitudEmpleadorCrearDTO;
 import com.gg.turnlook.features.solicitud.empleador.dto.SolicitudEmpleadorMiniDTO;
 import com.gg.turnlook.features.solicitud.empleador.dto.SolicitudEmpleadorResponseDTO;
@@ -32,7 +32,6 @@ import jakarta.validation.Validation;
 import jakarta.validation.Validator;
 import java.time.LocalDate;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -40,6 +39,8 @@ import java.util.stream.Collectors;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 
 class SolicitudEmpleadorServiceTest {
@@ -162,26 +163,102 @@ class SolicitudEmpleadorServiceTest {
     }
 
     @Test
-    void listadoAdministrativoTraeTodosLosEstadosYFiltraEnRepositorio() {
-        List<SolicitudEmpleadorMiniDTO> todas = List.of(
-                mini(1, EstadoSolicitud.PENDIENTE), mini(2, EstadoSolicitud.APROBADA),
-                mini(3, EstadoSolicitud.RECHAZADA));
-        when(repo.findMiniAdmin(isNull(), any(Pageable.class))).thenReturn(todas);
-        when(repo.findMiniAdmin(eq(EstadoSolicitud.APROBADA), any(Pageable.class)))
-                .thenReturn(List.of(mini(2, EstadoSolicitud.APROBADA)));
+    void primeraPaginaSinFiltroIncluyeMetadatosYEspecificaPageRequest() {
+        List<SolicitudEmpleadorMiniDTO> contenido = List.of(
+                mini(3, EstadoSolicitud.APROBADA), mini(2, EstadoSolicitud.PENDIENTE),
+                mini(1, EstadoSolicitud.RECHAZADA));
+        when(repo.findMiniAdmin(isNull(), any(Pageable.class)))
+                .thenReturn(new PageImpl<>(contenido, PageRequest.of(0, 10), 23));
 
-        assertEquals(3, service.listarSolicitudesAdministrativas(null).size());
-        assertEquals(1, service.listarSolicitudesAdministrativas("aprobada").size());
+        PaginaSolicitudesEmpleadorDTO pagina =
+                service.listarSolicitudesAdministrativas(null, "0", "10");
 
-        ArgumentCaptor<EstadoSolicitud> captor = ArgumentCaptor.forClass(EstadoSolicitud.class);
-        verify(repo, times(2)).findMiniAdmin(captor.capture(), any(Pageable.class));
-        assertEquals(Arrays.asList(null, EstadoSolicitud.APROBADA), captor.getAllValues());
+        assertEquals(contenido, pagina.getContent());
+        assertEquals(23, pagina.getTotalElements());
+        assertEquals(3, pagina.getTotalPages());
+        assertEquals(0, pagina.getNumber());
+        assertEquals(10, pagina.getSize());
+        assertEquals(List.of(EstadoSolicitud.APROBADA, EstadoSolicitud.PENDIENTE,
+                        EstadoSolicitud.RECHAZADA),
+                pagina.getContent().stream().map(SolicitudEmpleadorMiniDTO::getEstado).toList());
+
+        ArgumentCaptor<Pageable> captor = ArgumentCaptor.forClass(Pageable.class);
+        verify(repo).findMiniAdmin(isNull(), captor.capture());
+        assertEquals(0, captor.getValue().getPageNumber());
+        assertEquals(10, captor.getValue().getPageSize());
     }
 
     @Test
-    void rechazaEstadoDesconocidoEnElListadoAdministrativo() {
-        assertThrows(BadRequestException.class,
-                () -> service.listarSolicitudesAdministrativas("RESUELTA"));
+    void paginaIntermediaConFiltroCombinaEstadoYPaginacion() {
+        when(repo.findMiniAdmin(eq(EstadoSolicitud.APROBADA), any(Pageable.class)))
+                .thenReturn(new PageImpl<>(
+                        List.of(mini(5, EstadoSolicitud.APROBADA),
+                                mini(4, EstadoSolicitud.APROBADA)),
+                        PageRequest.of(1, 2), 5));
+
+        PaginaSolicitudesEmpleadorDTO pagina =
+                service.listarSolicitudesAdministrativas("aprobada", "1", "2");
+
+        assertEquals(2, pagina.getContent().size());
+        assertEquals(5, pagina.getTotalElements());
+        assertEquals(3, pagina.getTotalPages());
+        assertEquals(1, pagina.getNumber());
+        assertEquals(2, pagina.getSize());
+        assertTrue(pagina.getContent().stream()
+                .allMatch(d -> d.getEstado() == EstadoSolicitud.APROBADA));
+
+        ArgumentCaptor<EstadoSolicitud> estadoCaptor =
+                ArgumentCaptor.forClass(EstadoSolicitud.class);
+        ArgumentCaptor<Pageable> paginaCaptor = ArgumentCaptor.forClass(Pageable.class);
+        verify(repo).findMiniAdmin(estadoCaptor.capture(), paginaCaptor.capture());
+        assertEquals(EstadoSolicitud.APROBADA, estadoCaptor.getValue());
+        assertEquals(PageRequest.of(1, 2), paginaCaptor.getValue());
+    }
+
+    @Test
+    void paginaSinResultadosDevuelveMetadatosCorrectos() {
+        when(repo.findMiniAdmin(eq(EstadoSolicitud.RECHAZADA), any(Pageable.class)))
+                .thenReturn(new PageImpl<>(List.of(), PageRequest.of(4, 10), 12));
+
+        PaginaSolicitudesEmpleadorDTO pagina =
+                service.listarSolicitudesAdministrativas("RECHAZADA", "4", "10");
+
+        assertTrue(pagina.getContent().isEmpty());
+        assertEquals(12, pagina.getTotalElements());
+        assertEquals(2, pagina.getTotalPages());
+        assertEquals(4, pagina.getNumber());
+        assertEquals(10, pagina.getSize());
+    }
+
+    @Test
+    void parametrosDePaginacionPorDefectoCuandoSeOmiten() {
+        when(repo.findMiniAdmin(isNull(), any(Pageable.class)))
+                .thenReturn(new PageImpl<>(List.of(), PageRequest.of(0, 10), 0));
+
+        PaginaSolicitudesEmpleadorDTO pagina =
+                service.listarSolicitudesAdministrativas(null, null, null);
+
+        assertEquals(0, pagina.getNumber());
+        assertEquals(10, pagina.getSize());
+        ArgumentCaptor<Pageable> captor = ArgumentCaptor.forClass(Pageable.class);
+        verify(repo).findMiniAdmin(isNull(), captor.capture());
+        assertEquals(PageRequest.of(0, 10), captor.getValue());
+    }
+
+    @Test
+    void rechazaParametrosInvalidosYEstadoDesconocido() {
+        List<String[]> casosInvalidos = List.of(
+                new String[]{"RESUELTA", "0", "10"},
+                new String[]{null, "-1", "10"},
+                new String[]{null, "abc", "10"},
+                new String[]{null, "0", "0"},
+                new String[]{null, "0", "-5"},
+                new String[]{null, "0", "abc"});
+
+        for (String[] caso : casosInvalidos) {
+            assertThrows(BadRequestException.class,
+                    () -> service.listarSolicitudesAdministrativas(caso[0], caso[1], caso[2]));
+        }
         verify(repo, never()).findMiniAdmin(any(), any());
     }
 

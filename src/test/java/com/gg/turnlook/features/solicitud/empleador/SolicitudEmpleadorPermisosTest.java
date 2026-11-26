@@ -1,5 +1,6 @@
 package com.gg.turnlook.features.solicitud.empleador;
 
+import com.gg.turnlook.features.solicitud.empleador.dto.PaginaSolicitudesEmpleadorDTO;
 import com.gg.turnlook.features.solicitud.empleador.dto.SolicitudEmpleadorCrearDTO;
 import java.util.List;
 import org.junit.jupiter.api.AfterEach;
@@ -76,24 +77,37 @@ class SolicitudEmpleadorPermisosTest {
     @Test void empleadorNoPuedeListarNiAprobarSolicitudesDeOtrosUsuarios() {
         sesion("EMPLEADOR");
         assertThrows(AuthorizationDeniedException.class,
-                () -> controller.listarSolicitudesEmpleador(null));
+                () -> controller.listarSolicitudesEmpleador(null, "0", "10"));
         assertThrows(AuthorizationDeniedException.class,
-                () -> controller.listarSolicitudesEmpleador("APROBADA"));
+                () -> controller.listarSolicitudesEmpleador("APROBADA", "1", "5"));
         assertThrows(AuthorizationDeniedException.class,
                 () -> controller.aprobarSolicitudEmpleador(10));
         verifyNoInteractions(servicio);
     }
 
-    @Test void administradorPuedeListarTodosLosEstadosYOpcionalmenteFiltrar() {
+    @Test void clienteNoPuedeListarSolicitudesAdministrativasNiFiltrar() {
+        sesion("CLIENTE");
+        assertThrows(AuthorizationDeniedException.class,
+                () -> controller.listarSolicitudesEmpleador(null, "0", "10"));
+        assertThrows(AuthorizationDeniedException.class,
+                () -> controller.listarSolicitudesEmpleador("PENDIENTE", "2", "3"));
+        verifyNoInteractions(servicio);
+    }
+
+    @Test void administradorPuedeListarTodosLosEstadosYOpcionalmenteFiltrarYPaginar() {
         sesion("ADMINISTRADOR");
-        when(servicio.listarSolicitudesAdministrativas(null)).thenReturn(List.of());
-        when(servicio.listarSolicitudesAdministrativas("RECHAZADA")).thenReturn(List.of());
+        when(servicio.listarSolicitudesAdministrativas(null, "0", "10"))
+                .thenReturn(new PaginaSolicitudesEmpleadorDTO(List.of(), 0, 0, 0, 10));
+        when(servicio.listarSolicitudesAdministrativas("RECHAZADA", "1", "5"))
+                .thenReturn(new PaginaSolicitudesEmpleadorDTO(List.of(), 7, 2, 1, 5));
 
-        assertEquals(200, controller.listarSolicitudesEmpleador(null).getStatusCode().value());
-        assertEquals(200, controller.listarSolicitudesEmpleador("RECHAZADA").getStatusCode().value());
+        assertEquals(200,
+                controller.listarSolicitudesEmpleador(null, "0", "10").getStatusCode().value());
+        assertEquals(200,
+                controller.listarSolicitudesEmpleador("RECHAZADA", "1", "5").getStatusCode().value());
 
-        verify(servicio).listarSolicitudesAdministrativas(null);
-        verify(servicio).listarSolicitudesAdministrativas("RECHAZADA");
+        verify(servicio).listarSolicitudesAdministrativas(null, "0", "10");
+        verify(servicio).listarSolicitudesAdministrativas("RECHAZADA", "1", "5");
     }
 
     private void sesion(String... roles) {
