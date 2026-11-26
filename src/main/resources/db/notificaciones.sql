@@ -8,7 +8,10 @@ CREATE TABLE IF NOT EXISTS notificaciones (
     titulo         VARCHAR(120) NOT NULL,
     mensaje        VARCHAR(500) NOT NULL,
     fecha_creacion TIMESTAMP   NOT NULL DEFAULT now(),
-    leida          BOOLEAN     NOT NULL DEFAULT FALSE
+    leida          BOOLEAN     NOT NULL DEFAULT FALSE,
+    destino_tipo   VARCHAR(30),
+    destino_id     INTEGER,
+    sucursal_id    INTEGER
 );
 
 -- Listado del usuario ordenado de la más nueva a la más vieja.

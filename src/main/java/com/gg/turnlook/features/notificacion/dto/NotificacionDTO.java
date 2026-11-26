@@ -1,5 +1,6 @@
 package com.gg.turnlook.features.notificacion.dto;
 
+import com.gg.turnlook.features.notificacion.TipoDestinoNotificacion;
 import com.gg.turnlook.features.notificacion.TipoNotificacion;
 import java.time.LocalDateTime;
 import lombok.AllArgsConstructor;
@@ -18,4 +19,8 @@ public class NotificacionDTO {
     private String mensaje;
     private LocalDateTime fecha;
     private boolean leida;
+    /** Destino concreto (turno, pago, solicitud o conversación); puede faltar. */
+    private TipoDestinoNotificacion destinoTipo;
+    private Integer destinoId;
+    private Integer sucursalId;
 }

@@ -65,17 +65,35 @@ public class NotificacionService {
     @Transactional
     public NotificacionDTO registrar(String email, TipoNotificacion tipo,
                                      String titulo, String mensaje) {
+        return registrar(email, tipo, titulo, mensaje, null, null, null);
+    }
+
+    /** Crea una notificación con destino concreto buscando al destinatario por email. */
+    @Transactional
+    public NotificacionDTO registrar(String email, TipoNotificacion tipo,
+                                     String titulo, String mensaje,
+                                     TipoDestinoNotificacion destinoTipo, Integer destinoId,
+                                     Integer sucursalId) {
         String destinatario = emailDestino(email);
         Usuario usuario = usuarioRepository.findByEmailAndActivoTrue(destinatario)
                 .orElseThrow(() -> new NotFoundException("Usuario no encontrado"));
-        return registrar(usuario, tipo, titulo, mensaje);
+        return registrar(usuario, tipo, titulo, mensaje, destinoTipo, destinoId, sucursalId);
     }
 
     /** Crea una notificación para un usuario ya resuelto (uso interno). */
     @Transactional
     public NotificacionDTO registrar(Usuario usuario, TipoNotificacion tipo,
                                      String titulo, String mensaje) {
-        validar(usuario, tipo, titulo, mensaje);
+        return registrar(usuario, tipo, titulo, mensaje, null, null, null);
+    }
+
+    /** Crea una notificación para un usuario ya resuelto con destino concreto. */
+    @Transactional
+    public NotificacionDTO registrar(Usuario usuario, TipoNotificacion tipo,
+                                     String titulo, String mensaje,
+                                     TipoDestinoNotificacion destinoTipo, Integer destinoId,
+                                     Integer sucursalId) {
+        validar(usuario, tipo, titulo, mensaje, destinoTipo, destinoId);
 
         Notificacion notificacion = new Notificacion();
         notificacion.setUsuario(usuario);
@@ -83,6 +101,9 @@ public class NotificacionService {
         notificacion.setTitulo(titulo.trim());
         notificacion.setMensaje(mensaje.trim());
         notificacion.setLeida(false);
+        notificacion.setDestinoTipo(destinoTipo);
+        notificacion.setDestinoId(destinoId);
+        notificacion.setSucursalId(sucursalId != null && sucursalId > 0 ? sucursalId : null);
 
         return aDTO(notificacionRepository.save(notificacion));
     }
@@ -94,10 +115,14 @@ public class NotificacionService {
                 notificacion.getTitulo(),
                 notificacion.getMensaje(),
                 notificacion.getFechaCreacion(),
-                notificacion.isLeida());
+                notificacion.isLeida(),
+                notificacion.getDestinoTipo(),
+                notificacion.getDestinoId(),
+                notificacion.getSucursalId());
     }
 
-    private void validar(Usuario usuario, TipoNotificacion tipo, String titulo, String mensaje) {
+    private void validar(Usuario usuario, TipoNotificacion tipo, String titulo, String mensaje,
+                         TipoDestinoNotificacion destinoTipo, Integer destinoId) {
         if (usuario == null || usuario.getId() == null) {
             throw new BadRequestException("La notificación debe pertenecer a un usuario");
         }
@@ -117,6 +142,10 @@ public class NotificacionService {
         if (mensaje.trim().length() > LONGITUD_MENSAJE) {
             throw new BadRequestException(
                     "El mensaje no puede superar los " + LONGITUD_MENSAJE + " caracteres");
+        }
+        if (destinoTipo != null && (destinoId == null || destinoId <= 0)) {
+            throw new BadRequestException(
+                    "El destino de la notificación requiere un identificador válido");
         }
     }
 

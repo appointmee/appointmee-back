@@ -59,6 +59,19 @@ public class Notificacion {
     @Column(name = "leida", nullable = false)
     private boolean leida;
 
+    /** Entidad concreta a abrir; opcional para notificaciones sin destino navegable. */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "destino_tipo", length = 30)
+    private TipoDestinoNotificacion destinoTipo;
+    
+    /** el registro específico dentro de la seccion destino tipo . */
+    @Column(name = "destino_id")
+    private Integer destinoId;
+
+    /** Sucursal asociada al destino, necesaria para las rutas de turnos y pagos. */
+    @Column(name = "sucursal_id")
+    private Integer sucursalId;
+
     @PrePersist
     void asignarFechaCreacion() {
         if (fechaCreacion == null) {
