@@ -63,6 +63,8 @@ public class ConversacionService {
             throw new BadRequestException("El cliente y el empleado no pueden ser la misma persona");
         }
 
+        acceso.validarVentana(turno);
+
         boolean esCliente = cliente.getId().equals(actual.getId());
         boolean esAtendedor = atendedor.getId().equals(actual.getId());
         if (!esCliente && !esAtendedor) {
@@ -83,6 +85,8 @@ public class ConversacionService {
         List<ConversacionResumenDTO> resumenes = new ArrayList<>();
         for (ConversacionParticipante participante : participaciones) {
             Conversacion conversacion = participante.getConversacion();
+            if (!acceso.ventanaAbierta(conversacion)) continue;
+
             Mensaje ultimo = conversacion.getUltimoMensajeId() == null
                     ? null
                     : mensajeRepo.findById(conversacion.getUltimoMensajeId()).orElse(null);
@@ -99,11 +103,18 @@ public class ConversacionService {
                     .findFirst()
                     .orElse("Sin interlocutor");
 
+            Turno turno = conversacion.getTurno();
             resumenes.add(new ConversacionResumenDTO(
                     conversacion.getId(),
                     conversacion.getSucursal().getId(),
                     conversacion.getSucursal().getNombre(),
-                    conversacion.getTurno() != null ? conversacion.getTurno().getId() : null,
+                    turno != null ? turno.getId() : null,
+                    turno != null && turno.getServicio() != null
+                            ? turno.getServicio().getNombre() : null,
+                    turno != null && turno.getCliente() != null
+                            ? mapper.nombreCompleto(turno.getCliente()) : null,
+                    turno != null && turno.getEmpleado() != null
+                            ? mapper.nombreCompleto(turno.getEmpleado()) : null,
                     conversacion.getFechaCreacion(),
                     ultimo != null ? ultimo.getContenido() : null,
                     ultimo != null ? ultimo.getFechaCreacion() : null,
@@ -122,6 +133,7 @@ public class ConversacionService {
     public ConversacionDetalleDTO obtener(Integer conversacionId, String email) {
         Conversacion conversacion = acceso.buscarConversacion(conversacionId);
         acceso.participante(conversacion.getId(), email);
+        acceso.validarVentana(conversacion);
         return mapper.aDetalle(conversacion, acceso.participantes(conversacion.getId()));
     }
 
