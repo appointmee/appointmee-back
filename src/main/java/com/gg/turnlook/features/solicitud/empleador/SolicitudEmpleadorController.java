@@ -1,5 +1,6 @@
 package com.gg.turnlook.features.solicitud.empleador;
 
+import com.gg.turnlook.features.solicitud.empleador.dto.PaginaSolicitudesEmpleadorDTO;
 import com.gg.turnlook.features.solicitud.empleador.dto.SolicitudEmpleadorCrearDTO;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
@@ -38,15 +39,17 @@ public class SolicitudEmpleadorController {
     }
 
 
-    /// Listado administrativo de todas las solicitudes (pendientes y
-    /// historicas). El parametro estado es opcional y se valida en el servicio.
+    /// Listado administrativo paginado. estado es opcional; page empieza en 0
+    /// y size por defecto es 10. Los parametros se validan en el servicio.
     @PreAuthorize("hasRole('ADMINISTRADOR')")
     @GetMapping("/listar")
-    public ResponseEntity<?> listarSolicitudesEmpleador(
-            @RequestParam(value = "estado", required = false) String estado) {
+    public ResponseEntity<PaginaSolicitudesEmpleadorDTO> listarSolicitudesEmpleador(
+            @RequestParam(value = "estado", required = false) String estado,
+            @RequestParam(value = "page", defaultValue = "0") String page,
+            @RequestParam(value = "size", defaultValue = "10") String size) {
 
         return ResponseEntity.ok().body(
-                solicitudEmpleadorService.listarSolicitudesAdministrativas(estado));
+                solicitudEmpleadorService.listarSolicitudesAdministrativas(estado, page, size));
     }
 
 
@@ -91,6 +94,3 @@ public class SolicitudEmpleadorController {
 
 
 }
-
-
-

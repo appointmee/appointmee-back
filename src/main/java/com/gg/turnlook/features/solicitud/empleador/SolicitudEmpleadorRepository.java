@@ -4,6 +4,7 @@ import com.gg.turnlook.features.solicitud.EstadoSolicitud;
 import com.gg.turnlook.features.solicitud.empleador.dto.SolicitudEmpleadorMiniDTO;
 import java.util.List;
 import java.util.Optional;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -18,17 +19,25 @@ public interface SolicitudEmpleadorRepository extends JpaRepository<SolicitudEmp
     boolean existsByUsuarioIdAndEstado(Integer userId, EstadoSolicitud estado);
 
 
-    /// Listado administrativo: todos los estados cuando :estado es NULL y solo
-    /// el estado pedido cuando llega un filtro. El filtro se aplica en SQL, no
-    /// en memoria, y la proyeccion evita cargar entidades ni colecciones.
-    @Query("""
+    /// Listado administrativo paginado: todos los estados cuando :estado es
+    /// NULL y solo el estado pedido cuando llega un filtro. El filtro, el
+    /// orden y el limite se resuelven en SQL: Spring aplica OFFSET/LIMIT sobre
+    /// esta consulta y usa el countQuery para los metadatos, con el mismo
+    /// filtro. La proyeccion directa evita cargar entidades ni colecciones.
+    /// El ID como segundo criterio de orden hace estable la paginacion.
+    @Query(value = """
                 SELECT new com.gg.turnlook.features.solicitud.empleador.dto.SolicitudEmpleadorMiniDTO(
                     s.id, s.usuario.nombre, s.usuario.apellido, s.fechaSolicitud, s.estado)
                 FROM SolicitudEmpleador s
                 WHERE :estado IS NULL OR s.estado = :estado
                 ORDER BY s.fechaSolicitud DESC, s.id DESC
+            """,
+            countQuery = """
+                SELECT COUNT(s)
+                FROM SolicitudEmpleador s
+                WHERE :estado IS NULL OR s.estado = :estado
             """)
-    List<SolicitudEmpleadorMiniDTO> findMiniAdmin(
+    Page<SolicitudEmpleadorMiniDTO> findMiniAdmin(
             @Param("estado") EstadoSolicitud estado,
             Pageable pageable);
 

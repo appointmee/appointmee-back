@@ -5,6 +5,7 @@ import com.gg.turnlook.common.exception.ConflictException;
 import com.gg.turnlook.common.exception.ForbiddenException;
 import com.gg.turnlook.common.exception.NotFoundException;
 import com.gg.turnlook.features.solicitud.EstadoSolicitud;
+import com.gg.turnlook.features.solicitud.empleador.dto.PaginaSolicitudesEmpleadorDTO;
 import com.gg.turnlook.features.solicitud.empleador.dto.SolicitudEmpleadorCrearDTO;
 import com.gg.turnlook.features.solicitud.empleador.dto.SolicitudEmpleadorMiniDTO;
 import com.gg.turnlook.features.solicitud.empleador.dto.SolicitudEmpleadorResponseDTO;
@@ -20,6 +21,7 @@ import com.gg.turnlook.features.usuario.rol.RolService;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -31,9 +33,9 @@ import org.springframework.transaction.annotation.Transactional;
 public class SolicitudEmpleadorService {
 
 
-    // Limite de los listados de solicitudes. Se mantiene el retorno List para
-    // no cambiar el contrato de la API.
+    // Limite del listado propio (no administrativo, que ahora es paginado).
     private static final int LIMITE_SOLICITUDES = 500;
+    private static final int TAMANO_DEFECTO = 10;
     private static final int MOTIVO_MINIMO = 20;
     private static final int MOTIVO_MAXIMO = 3000;
     private static final int DIRECCION_MAXIMA = 500;
@@ -85,15 +87,29 @@ public class SolicitudEmpleadorService {
     }
 
 
-    /// Listado administrativo: sin filtro devuelve todos los estados, incluidos
-    /// los historicos. El filtro opcional se resuelve en PostgreSQL.
+    /// Listado administrativo paginado: sin filtro devuelve todos los estados,
+    /// incluidos los historicos. El filtro y el OFFSET/LIMIT se resuelven en
+    /// PostgreSQL; solo se traen los registros de la pagina pedida.
+    /// Los parametros se reciben como texto para responder 400 (y no 500) cuando
+    /// no son numeros enteros.
     @Transactional(readOnly = true)
-    public List<SolicitudEmpleadorMiniDTO> listarSolicitudesAdministrativas(String estado) {
+    public PaginaSolicitudesEmpleadorDTO listarSolicitudesAdministrativas(
+            String estado, String pagina, String size) {
 
         EstadoSolicitud filtro = parsearEstado(estado);
+        int numeroPagina = parsearNumero(pagina, "page", 0);
+        int tamanoPagina = parsearNumero(size, "size", TAMANO_DEFECTO);
+        validarPaginacion(numeroPagina, tamanoPagina);
 
-        return solicitudEmpleadorRepo.findMiniAdmin(filtro,
-                PageRequest.of(0, LIMITE_SOLICITUDES));
+        Page<SolicitudEmpleadorMiniDTO> resultado = solicitudEmpleadorRepo.findMiniAdmin(
+                filtro, PageRequest.of(numeroPagina, tamanoPagina));
+
+        return new PaginaSolicitudesEmpleadorDTO(
+                resultado.getContent(),
+                resultado.getTotalElements(),
+                resultado.getTotalPages(),
+                resultado.getNumber(),
+                resultado.getSize());
     }
 
 
@@ -208,6 +224,29 @@ public class SolicitudEmpleadorService {
         } catch (IllegalArgumentException e) {
             throw new BadRequestException(
                     "Estado inválido. Los valores admitidos son PENDIENTE, APROBADA y RECHAZADA");
+        }
+    }
+
+
+    private int parsearNumero(String valor, String nombreParametro, int valorPorDefecto) {
+        if (valor == null || valor.isBlank()) {
+            return valorPorDefecto;
+        }
+        try {
+            return Integer.parseInt(valor.trim());
+        } catch (NumberFormatException e) {
+            throw new BadRequestException(
+                    "El parámetro " + nombreParametro + " debe ser un número entero");
+        }
+    }
+
+
+    private void validarPaginacion(int pagina, int tamano) {
+        if (pagina < 0) {
+            throw new BadRequestException("El parámetro page no puede ser negativo");
+        }
+        if (tamano < 1) {
+            throw new BadRequestException("El parámetro size debe ser mayor que 0");
         }
     }
 
