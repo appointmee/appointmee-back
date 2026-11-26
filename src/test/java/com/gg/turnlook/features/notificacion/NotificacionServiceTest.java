@@ -25,18 +25,21 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.data.domain.PageImpl;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.data.domain.Pageable;
 
 class NotificacionServiceTest {
 
     private final NotificacionRepository notificacionRepository = mock(NotificacionRepository.class);
     private final UsuarioRepository usuarioRepository = mock(UsuarioRepository.class);
+    private final SimpMessagingTemplate messagingTemplate = mock(SimpMessagingTemplate.class);
 
     private NotificacionService service;
 
     @BeforeEach
     void setUp() {
-        service = new NotificacionService(notificacionRepository, usuarioRepository);
+        service = new NotificacionService(notificacionRepository, usuarioRepository,
+                messagingTemplate);
     }
 
     @Test
@@ -210,6 +213,17 @@ class NotificacionServiceTest {
         assertFalse(guardada.isLeida());
         assertEquals("Turno confirmado", dto.getTitulo());
         assertFalse(dto.isLeida());
+    }
+
+    @Test
+    void publicaLaNotificacionNuevaAlCanalPrivadoDelUsuario() {
+        Usuario ana = usuario(1, "ANA@Example.com");
+        when(notificacionRepository.save(any(Notificacion.class)))
+                .thenAnswer(invocacion -> invocacion.getArgument(0));
+
+        var dto = service.registrar(ana, TipoNotificacion.SISTEMA, "Aviso", "Novedad");
+
+        verify(messagingTemplate).convertAndSend("/topic/notificaciones/ana@example.com", dto);
     }
 
     @Test
