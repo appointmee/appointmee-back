@@ -20,11 +20,12 @@ public class SolicitudEmpleadorCrearDTO {
             message = "El motivo debe tener entre 20 y 3000 caracteres")
     private String motivo;
 
-    /// Toda solicitud debe incluir al menos una ubicacion elegida en Places.
-    /// No se impone un maximo arbitrario: cada ubicacion se valida y la URL
-    /// completa queda limitada por el servidor.
+    /// Toda solicitud debe incluir al menos una ubicacion elegida en Places y
+    /// como maximo 10. El limite se valida aqui (HTTP 400) y tambien en el
+    /// servicio para no depender exclusivamente de la capa web.
     @Valid
     @NotEmpty(message = "Debe incluir al menos una ubicacion")
+    @Size(max = 10, message = "Una solicitud puede incluir como maximo 10 ubicaciones")
     private List<@Valid UbicacionSolicitudDTO> ubicaciones = new ArrayList<>();
 
 

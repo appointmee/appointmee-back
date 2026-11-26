@@ -40,6 +40,7 @@ public class SolicitudEmpleadorService {
     private static final int MOTIVO_MAXIMO = 3000;
     private static final int DIRECCION_MAXIMA = 500;
     private static final int PLACE_ID_MAXIMO = 255;
+    private static final int UBICACIONES_MAXIMAS = 10;
 
 
     private final SolicitudEmpleadorRepository solicitudEmpleadorRepo;
@@ -263,11 +264,16 @@ public class SolicitudEmpleadorService {
     }
 
 
-    /// Validacion en servicio ademas de la validacion del DTO: ninguna ubicacion
-    /// parcial, fuera de rango o con campos vacios puede persistirse.
+    /// Validacion en servicio ademas de la validacion del DTO: entre 1 y 10
+    /// ubicaciones, ninguna parcial, fuera de rango o con campos vacios.
     private void validarUbicaciones(List<UbicacionSolicitudDTO> ubicaciones) {
         if (ubicaciones == null || ubicaciones.isEmpty()) {
             throw new BadRequestException("Debe incluir al menos una ubicacion");
+        }
+        if (ubicaciones.size() > UBICACIONES_MAXIMAS) {
+            throw new BadRequestException(
+                    "Una solicitud puede incluir como maximo "
+                            + UBICACIONES_MAXIMAS + " ubicaciones");
         }
         for (UbicacionSolicitudDTO ubicacion : ubicaciones) {
             if (ubicacion == null) {
