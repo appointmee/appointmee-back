@@ -102,7 +102,7 @@ class NotificacionEventosServiceTest {
         Usuario cliente = usuario(1, "cliente@example.com");
         Usuario empleado = usuario(2, "empleado@example.com");
 
-        service.pagoAprobado(turno(cliente, empleado, null));
+        service.pagoAprobado(() -> turno(cliente, empleado, null));
 
         List<Registro> registros = registros();
         assertEquals(1, registros.size());
@@ -117,7 +117,7 @@ class NotificacionEventosServiceTest {
         Usuario cliente = usuario(1, "cliente@example.com");
         Usuario empleado = usuario(2, "empleado@example.com");
 
-        service.pagoRechazado(turno(cliente, empleado, null));
+        service.pagoRechazado(() -> turno(cliente, empleado, null));
 
         List<Registro> registros = registros();
         assertEquals(1, registros.size());
@@ -166,7 +166,7 @@ class NotificacionEventosServiceTest {
         Usuario otro = usuario(3, "empleado@example.com");
 
         // El propio MensajeService excluye al autor antes de invocar al generador.
-        service.mensajeNuevo(31, List.of(cliente, otro));
+        service.mensajeNuevo(31, () -> List.of(cliente, otro));
 
         List<Registro> registros = registros();
         assertEquals(2, registros.size());
@@ -187,10 +187,10 @@ class NotificacionEventosServiceTest {
         service.turnoReservado(turno);
         service.turnoCancelado(turno);
         service.turnoFinalizado(turno);
-        service.pagoAprobado(turno);
-        service.pagoRechazado(turno);
+        service.pagoAprobado(() -> turno);
+        service.pagoRechazado(() -> turno);
         service.reseniaPublicada(turno);
-        service.mensajeNuevo(31, List.of(cliente));
+        service.mensajeNuevo(31, () -> List.of(cliente));
 
         assertTrue(registros().stream().allMatch(r ->
                 !r.titulo().contains("@")
@@ -219,9 +219,20 @@ class NotificacionEventosServiceTest {
     @Test
     void unFalloAlExtraerDatosDelEventoNoSePropaga() {
         assertDoesNotThrow(() -> service.turnoReservado(new Turno()));
-        assertDoesNotThrow(() -> service.pagoAprobado(new Turno()));
+        assertDoesNotThrow(() -> service.pagoAprobado(() -> new Turno()));
         assertDoesNotThrow(() -> service.reseniaPublicada(new Turno()));
         assertDoesNotThrow(() -> service.mensajeNuevo(31, null));
+    }
+
+    @Test
+    void unFalloAlCargarLosDatosParaNotificarNoInterrumpeLaOperacion() {
+        assertDoesNotThrow(() -> service.pagoAprobado(() -> {
+            throw new RuntimeException("consulta caída");
+        }));
+        assertDoesNotThrow(() -> service.mensajeNuevo(31, () -> {
+            throw new RuntimeException("consulta caída");
+        }));
+        assertTrue(registros().isEmpty());
     }
 
     private void limpiarRegistros() {

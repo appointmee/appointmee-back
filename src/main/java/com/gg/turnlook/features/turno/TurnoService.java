@@ -459,7 +459,7 @@ public class TurnoService {
 
         if (actualizados > 0 && (estado == EstadoTurno.CONFIRMADO
                 || estado == EstadoTurno.REALIZADO)) {
-            notificacionEventosService.pagoAprobado(listarTurnoPorId(turnoId));
+            notificacionEventosService.pagoAprobado(() -> listarTurnoPorId(turnoId));
         }
         return estado;
     }
@@ -472,7 +472,7 @@ public class TurnoService {
 
         // Sólo se avisa cuando el estado cambió: evita duplicados por webhooks repetidos.
         if (actualizados > 0 && estado == EstadoTurno.PAGO_RECHAZADO) {
-            notificacionEventosService.pagoRechazado(listarTurnoPorId(turnoId));
+            notificacionEventosService.pagoRechazado(() -> listarTurnoPorId(turnoId));
         }
         return estado;
     }

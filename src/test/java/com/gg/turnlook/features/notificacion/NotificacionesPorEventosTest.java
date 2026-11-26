@@ -11,6 +11,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import com.gg.turnlook.features.chat.ChatAccesoService;
@@ -47,6 +48,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.Supplier;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
@@ -110,7 +112,7 @@ class NotificacionesPorEventosTest {
         when(turnoRepo.findByIdConDetalles(41)).thenReturn(Optional.of(turno));
 
         assertEquals(EstadoTurno.CONFIRMADO, service.setearPagoAprobado(41));
-        verify(eventos).pagoAprobado(turno);
+        verify(eventos).pagoAprobado(any());
 
         when(turnoRepo.actualizarEstadoSiEs(eq(41), anyCollection(), eq(EstadoTurno.CONFIRMADO)))
                 .thenReturn(0);
@@ -195,10 +197,44 @@ class NotificacionesPorEventosTest {
         dto.setClienteMensajeId(clienteMensajeId);
         service.enviar(31, dto, "autor@example.com");
 
-        ArgumentCaptor<List<Usuario>> captor = ArgumentCaptor.forClass(List.class);
+        ArgumentCaptor<Supplier<List<Usuario>>> captor = ArgumentCaptor.forClass(Supplier.class);
         verify(eventos).mensajeNuevo(eq(31), captor.capture());
         assertEquals(List.of("cliente@example.com", "empleado@example.com"),
-                captor.getValue().stream().map(Usuario::getEmail).toList());
+                captor.getValue().get().stream().map(Usuario::getEmail).toList());
+    }
+
+    @Test
+    void falloAlBuscarParticipantesNoInterrumpeElEnvioDelMensaje() {
+        Conversacion conversacion = mock(Conversacion.class);
+        when(conversacion.getId()).thenReturn(31);
+        ChatAccesoService acceso = mock(ChatAccesoService.class);
+        when(acceso.buscarConversacion(31)).thenReturn(conversacion);
+        when(acceso.participante(31, "autor@example.com")).thenReturn(participante(1, "autor@example.com"));
+        when(acceso.participantes(31)).thenThrow(new RuntimeException("consulta caída"));
+
+        UUID clienteMensajeId = UUID.randomUUID();
+        MensajeRepository mensajeRepo = mock(MensajeRepository.class);
+        when(mensajeRepo.findByConversacionIdAndClienteMensajeId(31, clienteMensajeId))
+                .thenReturn(Optional.empty());
+        when(mensajeRepo.save(any(Mensaje.class))).thenAnswer(invocacion -> {
+            Mensaje mensaje = invocacion.getArgument(0);
+            mensaje.setId(77L);
+            return mensaje;
+        });
+
+        NotificacionService notificacionService = mock(NotificacionService.class);
+        MensajeService service = new MensajeService(
+                mock(com.gg.turnlook.features.chat.ConversacionRepository.class),
+                mensajeRepo, acceso, new ChatMapper(),
+                new NotificacionEventosService(notificacionService));
+
+        MensajeCrearDTO dto = new MensajeCrearDTO();
+        dto.setContenido("Hola");
+        dto.setClienteMensajeId(clienteMensajeId);
+
+        assertDoesNotThrow(() -> service.enviar(31, dto, "autor@example.com"));
+        verify(mensajeRepo).save(any(Mensaje.class));
+        verifyNoInteractions(notificacionService);
     }
 
     private ConversacionParticipante participante(Integer id, String email) {

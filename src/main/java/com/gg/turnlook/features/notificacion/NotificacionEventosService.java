@@ -7,6 +7,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
+import java.util.function.Supplier;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -88,22 +89,30 @@ public class NotificacionEventosService {
         });
     }
 
-    /** Pago aprobado: sólo al cliente que pagó, dueño de la operación de cobro. */
-    public void pagoAprobado(Turno turno) {
-        ejecutar("pago aprobado", () ->
-                avisar(turno.getCliente(), TipoNotificacion.PAGO,
-                        "Pago aprobado", "Tu pago fue aprobado y el turno quedó confirmado.",
-                        TipoDestinoNotificacion.PAGO, turno.getId(), sucursalId(turno),
-                        new HashSet<>()));
+    /**
+     * Pago aprobado: sólo al cliente que pagó, dueño de la operación de cobro.
+     * El proveedor se resuelve dentro del bloque seguro para que una falla al cargar
+     * los datos de la notificación no afecte al webhook que la disparó.
+     */
+    public void pagoAprobado(Supplier<Turno> proveedor) {
+        ejecutar("pago aprobado", () -> {
+            Turno turno = proveedor.get();
+            avisar(turno.getCliente(), TipoNotificacion.PAGO,
+                    "Pago aprobado", "Tu pago fue aprobado y el turno quedó confirmado.",
+                    TipoDestinoNotificacion.PAGO, turno.getId(), sucursalId(turno),
+                    new HashSet<>());
+        });
     }
 
     /** Pago rechazado: sólo al cliente, para que pueda reintentar. */
-    public void pagoRechazado(Turno turno) {
-        ejecutar("pago rechazado", () ->
-                avisar(turno.getCliente(), TipoNotificacion.PAGO,
-                        "Pago rechazado", "No se pudo procesar tu pago. Podés intentar nuevamente.",
-                        TipoDestinoNotificacion.PAGO, turno.getId(), sucursalId(turno),
-                        new HashSet<>()));
+    public void pagoRechazado(Supplier<Turno> proveedor) {
+        ejecutar("pago rechazado", () -> {
+            Turno turno = proveedor.get();
+            avisar(turno.getCliente(), TipoNotificacion.PAGO,
+                    "Pago rechazado", "No se pudo procesar tu pago. Podés intentar nuevamente.",
+                    TipoDestinoNotificacion.PAGO, turno.getId(), sucursalId(turno),
+                    new HashSet<>());
+        });
     }
 
     /** Reseña publicada: al profesional que desarrolló el turno. */
@@ -128,11 +137,15 @@ public class NotificacionEventosService {
                         new HashSet<>()));
     }
 
-    /** Mensaje nuevo: a todos los participantes salvo el autor, sin incluir el contenido. */
-    public void mensajeNuevo(Integer conversacionId, List<Usuario> destinatarios) {
+    /**
+     * Mensaje nuevo: a todos los participantes salvo el autor, sin incluir el contenido.
+     * Los destinatarios se resuelven dentro del bloque seguro: si falla la consulta de
+     * participantes, el mensaje ya enviado no se ve afectado.
+     */
+    public void mensajeNuevo(Integer conversacionId, Supplier<List<Usuario>> proveedor) {
         ejecutar("mensaje nuevo", () -> {
             Set<String> avisados = new HashSet<>();
-            for (Usuario destinatario : destinatarios) {
+            for (Usuario destinatario : proveedor.get()) {
                 avisar(destinatario, TipoNotificacion.MENSAJE,
                         "Nuevo mensaje", "Recibiste un mensaje nuevo en una conversación.",
                         TipoDestinoNotificacion.CONVERSACION, conversacionId, null, avisados);
