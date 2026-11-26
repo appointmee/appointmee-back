@@ -6,5 +6,7 @@ public enum TipoNotificacion {
     CANCELACION,
     RECORDATORIO,
     PAGO,
-    SISTEMA
+    SISTEMA,
+    SOLICITUD,
+    MENSAJE
 }
