@@ -16,6 +16,7 @@ import static org.mockito.Mockito.when;
 import com.gg.turnlook.common.exception.BadRequestException;
 import com.gg.turnlook.common.exception.ConflictException;
 import com.gg.turnlook.common.exception.ForbiddenException;
+import com.gg.turnlook.features.notificacion.NotificacionEventosService;
 import com.gg.turnlook.features.solicitud.EstadoSolicitud;
 import com.gg.turnlook.features.solicitud.empleador.dto.PaginaSolicitudesEmpleadorDTO;
 import com.gg.turnlook.features.solicitud.empleador.dto.SolicitudEmpleadorCrearDTO;
@@ -50,6 +51,7 @@ class SolicitudEmpleadorServiceTest {
     private SolicitudEmpleadorRepository repo;
     private UsuarioService usuarioService;
     private RolService rolService;
+    private NotificacionEventosService notificacionEventosService;
     private SolicitudEmpleadorService service;
     private Validator validator;
     private Usuario usuario;
@@ -59,7 +61,9 @@ class SolicitudEmpleadorServiceTest {
         repo = mock(SolicitudEmpleadorRepository.class);
         usuarioService = mock(UsuarioService.class);
         rolService = mock(RolService.class);
-        service = new SolicitudEmpleadorService(repo, usuarioService, rolService);
+        notificacionEventosService = mock(NotificacionEventosService.class);
+        service = new SolicitudEmpleadorService(repo, usuarioService, rolService,
+                notificacionEventosService);
         validator = Validation.buildDefaultValidatorFactory().getValidator();
         usuario = new Usuario("Ana", "Gomez", EMAIL, "hash");
         usuario.setId(11);
