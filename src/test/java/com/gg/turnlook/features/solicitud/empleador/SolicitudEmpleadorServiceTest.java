@@ -105,6 +105,34 @@ class SolicitudEmpleadorServiceTest {
                         dto("Quiero abrir una sucursal en el centro."), EMAIL));
 
         assertTrue(error.getMessage().contains("ubicacion"));
+        assertTrue(camposConError(dto(motivoValido())).contains("ubicaciones"));
+        verify(repo, never()).save(any());
+    }
+
+    @Test
+    void registraConDiezUbicacionesYConservaTodas() {
+        SolicitudEmpleadorCrearDTO limite = dto(motivoValido(), ubicaciones(10));
+        assertTrue(validator.validate(limite).isEmpty());
+
+        service.registrarSolicitud(limite, EMAIL);
+
+        SolicitudEmpleador guardada = capturarGuardada();
+        assertEquals(10, guardada.getUbicaciones().size());
+        assertEquals("ChIJ_10",
+                guardada.getUbicaciones().getLast().getGooglePlaceId());
+    }
+
+    @Test
+    void rechazaOnceUbicacionesConMensajeQueIndicaElLimite() {
+        SolicitudEmpleadorCrearDTO excedido = dto(motivoValido(), ubicaciones(11));
+
+        BadRequestException error = assertThrows(BadRequestException.class,
+                () -> service.registrarSolicitud(excedido, EMAIL));
+        assertTrue(error.getMessage().contains("10 ubicaciones"), error.getMessage());
+
+        assertTrue(camposConError(excedido).contains("ubicaciones"));
+        assertTrue(validator.validate(excedido).stream()
+                .anyMatch(v -> v.getMessage().contains("10 ubicaciones")));
         verify(repo, never()).save(any());
     }
 
@@ -371,6 +399,15 @@ class SolicitudEmpleadorServiceTest {
         dto.setMotivo(motivo);
         dto.setUbicaciones(new ArrayList<>(List.of(ubicaciones)));
         return dto;
+    }
+
+    private UbicacionSolicitudDTO[] ubicaciones(int cantidad) {
+        UbicacionSolicitudDTO[] resultado = new UbicacionSolicitudDTO[cantidad];
+        for (int i = 0; i < cantidad; i++) {
+            resultado[i] = ubicacion("Direccion " + (i + 1) + ", CABA",
+                    -34.0 - i / 1000.0, -58.0 - i / 1000.0, "ChIJ_" + (i + 1));
+        }
+        return resultado;
     }
 
     private UbicacionSolicitudDTO ubicacion(String direccion, double latitud,
