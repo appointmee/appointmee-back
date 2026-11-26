@@ -3,6 +3,7 @@ package com.gg.turnlook.features.notificacion;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.gg.turnlook.features.usuario.Usuario;
 import com.gg.turnlook.features.usuario.UsuarioRepository;
@@ -109,6 +110,56 @@ class NotificacionRepositoryTest {
     }
 
     @Test
+    void filtraPorTipoYEstadoCombinados() {
+        Usuario ana = guardarUsuario("ana@example.com");
+        guardarNotificacion(ana, "Reserva pendiente", LocalDateTime.now(),
+                TipoNotificacion.RESERVA, false);
+        guardarNotificacion(ana, "Reserva leída", LocalDateTime.now(),
+                TipoNotificacion.RESERVA, true);
+        guardarNotificacion(ana, "Pago pendiente", LocalDateTime.now(),
+                TipoNotificacion.PAGO, false);
+
+        Page<Notificacion> reservasNoLeidas = repository.listarPorUsuario(
+                "ana@example.com", TipoNotificacion.RESERVA, false, ORDEN);
+        Page<Notificacion> pagosLeidos = repository.listarPorUsuario(
+                "ana@example.com", TipoNotificacion.PAGO, true, ORDEN);
+
+        assertEquals(List.of("Reserva pendiente"), reservasNoLeidas.getContent().stream()
+                .map(Notificacion::getTitulo).toList());
+        assertEquals(0, pagosLeidos.getTotalElements());
+    }
+
+    @Test
+    void encuentraUnaNotificacionSoloSiPerteneceAlUsuario() {
+        Usuario ana = guardarUsuario("ana@example.com");
+        Usuario beto = guardarUsuario("beto@example.com");
+        Integer id = guardarNotificacion(ana, "De Ana", LocalDateTime.now()).getId();
+
+        assertEquals(id, repository.findByIdAndUsuarioEmail(id, "ana@example.com")
+                .orElseThrow().getId());
+        assertTrue(repository.findByIdAndUsuarioEmail(id, "beto@example.com").isEmpty());
+    }
+
+    @Test
+    void marcaTodasLasNoLeidasDelUsuarioYRespetaElTipo() {
+        Usuario ana = guardarUsuario("ana@example.com");
+        Usuario beto = guardarUsuario("beto@example.com");
+        guardarNotificacion(ana, "Reserva 1", LocalDateTime.now(), TipoNotificacion.RESERVA, false);
+        guardarNotificacion(ana, "Reserva 2", LocalDateTime.now(), TipoNotificacion.RESERVA, false);
+        guardarNotificacion(ana, "Pago pendiente", LocalDateTime.now(), TipoNotificacion.PAGO, false);
+        guardarNotificacion(beto, "De Beto", LocalDateTime.now(), TipoNotificacion.RESERVA, false);
+
+        assertEquals(2, repository.marcarTodasLeidas("ana@example.com", TipoNotificacion.RESERVA));
+        entityManager.clear();
+
+        assertEquals(1, repository.contarNoLeidas("ana@example.com"));
+        assertEquals(1, repository.contarNoLeidas("beto@example.com"));
+        assertEquals(List.of("Pago pendiente"), repository.listarPorUsuario(
+                "ana@example.com", null, false, ORDEN).getContent().stream()
+                .map(Notificacion::getTitulo).toList());
+    }
+
+    @Test
     void cuentaSoloLasNoLeidasDelUsuario() {
         Usuario ana = guardarUsuario("ana@example.com");
         Usuario beto = guardarUsuario("beto@example.com");
@@ -126,13 +177,19 @@ class NotificacionRepositoryTest {
     }
 
     private Notificacion guardarNotificacion(Usuario usuario, String titulo, LocalDateTime fecha) {
+        return guardarNotificacion(usuario, titulo, fecha, TipoNotificacion.SISTEMA,
+                titulo.contains("leída") || titulo.equals("Leída"));
+    }
+
+    private Notificacion guardarNotificacion(Usuario usuario, String titulo, LocalDateTime fecha,
+                                             TipoNotificacion tipo, boolean leida) {
         Notificacion notificacion = new Notificacion();
         notificacion.setUsuario(usuario);
-        notificacion.setTipo(TipoNotificacion.SISTEMA);
+        notificacion.setTipo(tipo);
         notificacion.setTitulo(titulo);
         notificacion.setMensaje("Mensaje de " + titulo);
         notificacion.setFechaCreacion(fecha);
-        notificacion.setLeida(titulo.contains("leída") || titulo.equals("Leída"));
+        notificacion.setLeida(leida);
         return repository.saveAndFlush(notificacion);
     }
 }
