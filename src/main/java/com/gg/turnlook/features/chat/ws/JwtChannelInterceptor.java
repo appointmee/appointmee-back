@@ -8,6 +8,7 @@ import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -33,6 +34,7 @@ public class JwtChannelInterceptor implements ChannelInterceptor {
     static final String ATRIBUTO_EMAIL = "chat.email";
     private static final Pattern DESTINO_CONVERSACION =
             Pattern.compile("/(?:app|topic)/conversaciones/(\\d+)");
+    private static final String PREFIJO_NOTIFICACIONES = "/topic/notificaciones/";
 
     private final JwtService jwtService;
     private final UsuarioRepository usuarioRepo;
@@ -57,10 +59,12 @@ public class JwtChannelInterceptor implements ChannelInterceptor {
         if (email == null) {
                 throw new AccessDeniedException("Sesión WebSocket no autenticada");
         }
-        Integer conversacionId = extraerConversacionId(accessor.getDestination());
+        String destino = accessor.getDestination();
+        Integer conversacionId = extraerConversacionId(destino);
         if (conversacionId != null && !acceso.esParticipante(conversacionId, email)) {
                 throw new AccessDeniedException("No sos participante de esta conversación");
         }
+        validarDestinoNotificaciones(destino, email);
 
         return message;
     }
@@ -91,12 +95,14 @@ public class JwtChannelInterceptor implements ChannelInterceptor {
             throw new AccessDeniedException("Sesión revocada");
         }
 
-        Map<String, Object> atributos = new HashMap<>();
-        if (accessor.getSessionAttributes() != null) {
-            atributos.putAll(accessor.getSessionAttributes());
+        // Spring 7 no propaga un mapa reemplazado con setSessionAttributes al resto
+        // de los frames: hay que mutar el mapa de la sesión que viene en el mensaje.
+        Map<String, Object> atributos = accessor.getSessionAttributes();
+        if (atributos == null) {
+            atributos = new HashMap<>();
+            accessor.setSessionAttributes(atributos);
         }
         atributos.put(ATRIBUTO_EMAIL, email);
-        accessor.setSessionAttributes(atributos);
         accessor.setUser(new UsernamePasswordAuthenticationToken(email, null, List.of()));
 
         return MessageBuilder.createMessage(message.getPayload(), accessor.getMessageHeaders());
@@ -108,6 +114,17 @@ public class JwtChannelInterceptor implements ChannelInterceptor {
         }
         Map<String, Object> atributos = accessor.getSessionAttributes();
         return atributos == null ? null : (String) atributos.get(ATRIBUTO_EMAIL);
+    }
+
+    /** Cada usuario sólo puede usar su propio canal privado de notificaciones. */
+    private void validarDestinoNotificaciones(String destino, String email) {
+        if (destino == null || !destino.startsWith(PREFIJO_NOTIFICACIONES)) {
+            return;
+        }
+        String propio = PREFIJO_NOTIFICACIONES + email.trim().toLowerCase(Locale.ROOT);
+        if (!propio.equals(destino)) {
+            throw new AccessDeniedException("No podés usar el canal de notificaciones de otro usuario");
+        }
     }
 
     private Integer extraerConversacionId(String destino) {
