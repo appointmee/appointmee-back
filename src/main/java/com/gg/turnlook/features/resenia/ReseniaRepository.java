@@ -22,8 +22,9 @@ public interface ReseniaRepository extends JpaRepository<Resenia, Integer> {
      * cuando varias resenias comparten fecha. La vista previa reutiliza esta
      * misma consulta con page 0 y tamano 5; el historial usa paginas de 10.
      * El nombre del empleado sale del snapshot de la resenia, nunca de la
-     * relacion con Usuario; la relacion solo se consulta para saber si sigue
-     * activo y vinculado a la sucursal.
+     * relacion con Usuario. La vigencia se consulta por el id guardado en el
+     * snapshot: asi no depende de que el turno conserve su relacion con el
+     * empleado (sin fila activa, o sin pertenencia a esta sucursal, se aclara).
      */
     @Query(value = """
                 SELECT new com.gg.turnlook.features.resenia.dto.ReseniaResponseDTO(
@@ -35,7 +36,7 @@ public interface ReseniaRepository extends JpaRepository<Resenia, Integer> {
                         ELSE true
                     END)
                 FROM Resenia r
-                LEFT JOIN r.turno.empleado e
+                LEFT JOIN Usuario e ON e.id = r.empleadoId
                 LEFT JOIN e.sucursalesEmpleado suc WITH suc.id = :sucursalId
                 WHERE r.turno.servicio.sucursal.id = :sucursalId
                 ORDER BY r.fechaResenia DESC, r.id DESC
