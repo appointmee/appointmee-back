@@ -40,13 +40,14 @@ public interface SucursalRepository extends JpaRepository<Sucursal, Integer> {
     boolean existsByDireccionIgnoreCase(String direccion);
 
 
-    // Chequeo previo al INSERT/UPDATE. La unicidad real la garantiza el indice
-    // parcial ux_sucursales_google_place_id creado en PostgreSQL; aca solo
-    // traducimos el conflicto a una respuesta controlada.
+    // Chequeo previo al INSERT/UPDATE. Solo compiten las sucursales activas:
+    // las inactivas no tienen Place ID (se libera al dar de baja) y no deben
+    // bloquear su reutilizacion. La unicidad real la garantiza el indice
+    // parcial ux_sucursales_google_place_id de PostgreSQL.
 
-    boolean existsByGooglePlaceId(String googlePlaceId);
+    boolean existsByActivoTrueAndGooglePlaceId(String googlePlaceId);
 
-    boolean existsByGooglePlaceIdAndIdNot(String googlePlaceId, Integer id);
+    boolean existsByActivoTrueAndGooglePlaceIdAndIdNot(String googlePlaceId, Integer id);
 
 
     @EntityGraph(attributePaths = {"categoria", "fotoPerfil"})

@@ -86,10 +86,25 @@ class SucursalBusquedaTest {
         sucursal.setGooglePlaceId("ChIJ_unico");
         repository.saveAndFlush(sucursal);
 
-        assertTrue(repository.existsByGooglePlaceId("ChIJ_unico"));
-        assertFalse(repository.existsByGooglePlaceId("ChIJ_otro"));
-        assertTrue(repository.existsByGooglePlaceIdAndIdNot("ChIJ_unico", 0));
-        assertFalse(repository.existsByGooglePlaceIdAndIdNot("ChIJ_unico", sucursal.getId()));
+        assertTrue(repository.existsByActivoTrueAndGooglePlaceId("ChIJ_unico"));
+        assertFalse(repository.existsByActivoTrueAndGooglePlaceId("ChIJ_otro"));
+        assertTrue(repository.existsByActivoTrueAndGooglePlaceIdAndIdNot("ChIJ_unico", 0));
+        assertFalse(repository.existsByActivoTrueAndGooglePlaceIdAndIdNot("ChIJ_unico", sucursal.getId()));
+    }
+
+    @Test
+    void laUnicidadDeGooglePlaceIdIgnoraSucursalesInactivas() {
+        Sucursal activa = guardar("Sucursal activa con place id", true, ECategoria.BARBERIA);
+        activa.setGooglePlaceId("ChIJ_activo");
+        repository.saveAndFlush(activa);
+
+        Sucursal inactiva = guardar("Sucursal inactiva con place id", false, ECategoria.BARBERIA);
+        inactiva.setGooglePlaceId("ChIJ_liberado");
+        repository.saveAndFlush(inactiva);
+
+        assertFalse(repository.existsByActivoTrueAndGooglePlaceId("ChIJ_liberado"));
+        assertTrue(repository.existsByActivoTrueAndGooglePlaceId("ChIJ_activo"));
+        assertFalse(repository.existsByActivoTrueAndGooglePlaceIdAndIdNot("ChIJ_activo", activa.getId()));
     }
 
     private Sucursal guardar(String nombre, boolean activo, ECategoria tipo) {
