@@ -63,10 +63,12 @@ class PagoApiServiceTest {
         cliente.setId(11);
 
         Servicio servicio = new Servicio();
+        servicio.setNombre("Corte de pelo");
         servicio.setSucursal(sucursal);
 
         Turno turno = new Turno();
         turno.setId(22);
+        turno.setFechaHora(LocalDateTime.of(2026, 12, 1, 10, 0));
         turno.setCliente(cliente);
         turno.setServicio(servicio);
 
@@ -103,6 +105,8 @@ class PagoApiServiceTest {
 
         assertEquals(1, dto.id());
         assertEquals(22, dto.turnoId());
+        assertEquals("Corte de pelo", dto.nombreServicio());
+        assertEquals(2026, dto.fechaTurno().getYear());
         assertEquals(PaymentState.CAPTURED, dto.paymentState());
         assertEquals(SettlementState.HELD_POLICY, dto.settlementState());
     }

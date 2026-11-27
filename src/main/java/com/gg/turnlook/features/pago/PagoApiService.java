@@ -174,6 +174,8 @@ public class PagoApiService {
         return new PagoResponseDTO(
                 pago.getId(),
                 pago.getTurno().getId(),
+                pago.getTurno().getFechaHora(),
+                pago.getTurno().getServicio() == null ? null : pago.getTurno().getServicio().getNombre(),
                 pago.getSucursal().getId(),
                 pago.getSucursal().getNombre(),
                 pago.getAmount(),

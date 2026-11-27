@@ -9,6 +9,8 @@ import java.time.LocalDateTime;
 public record PagoResponseDTO(
         Integer id,
         Integer turnoId,
+        LocalDateTime fechaTurno,
+        String nombreServicio,
         Integer sucursalId,
         String nombreSucursal,
         BigDecimal monto,
