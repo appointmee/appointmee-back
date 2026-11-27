@@ -103,6 +103,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET,
                                 "/sucursales/listar",
                                 "/sucursales/listar/filtrar",
+                                "/sucursales/listar/paginado",
+                                "/sucursales/recomendaciones",
                                 "/sucursales/categorias",
                                 "/sucursales/*",
                                 "/sucursales/*/elegir-empleado",

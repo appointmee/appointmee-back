@@ -152,5 +152,65 @@ public interface TurnoRepository extends JpaRepository<Turno, Integer> {
     @Query("SELECT t.estado FROM Turno t WHERE t.id = :id")
     Optional<EstadoTurno> findEstadoById(@Param("id") Integer id);
 
+    /** Demanda reciente agrupada en base: un solo GROUP BY para todas las
+     * sucursales, sin consultas por sucursal. Solo turnos confirmados/realizados. */
+    @Query("""
+            SELECT sv.sucursal.id, COUNT(t)
+            FROM Turno t JOIN t.servicio sv
+            WHERE t.estado IN :estados
+              AND t.fechaHora >= :desde
+              AND sv.sucursal.activo = true
+              AND EXISTS (
+                  SELECT 1 FROM Servicio s2
+                  WHERE s2.sucursal = sv.sucursal AND s2.activo = true
+              )
+              AND EXISTS (
+                  SELECT 1 FROM sv.sucursal.empleados e WHERE e.activo = true
+              )
+            GROUP BY sv.sucursal.id
+            ORDER BY COUNT(t) DESC, sv.sucursal.id ASC
+            """)
+    List<Object[]> contarTurnosRecientesPorSucursal(
+            @Param("estados") Collection<EstadoTurno> estados,
+            @Param("desde") LocalDateTime desde,
+            Pageable pageable);
+
+    /** Frecuencia ponderada por categoria de los turnos del cliente en los
+     * ultimos seis meses. Los pesos 1 / 0.7 / 0.4 se aplican en la consulta. */
+    @Query("""
+            SELECT t.servicio.sucursal.categoria.categoria,
+                   SUM(CASE
+                       WHEN t.fechaHora >= :hace30 THEN 1.0
+                       WHEN t.fechaHora >= :hace90 THEN 0.7
+                       ELSE 0.4 END)
+            FROM Turno t
+            WHERE t.cliente.email = :email
+              AND t.estado IN :estados
+              AND t.fechaHora >= :hace180
+            GROUP BY t.servicio.sucursal.categoria.categoria
+            ORDER BY SUM(CASE
+                       WHEN t.fechaHora >= :hace30 THEN 1.0
+                       WHEN t.fechaHora >= :hace90 THEN 0.7
+                       ELSE 0.4 END) DESC,
+                     t.servicio.sucursal.categoria.categoria ASC
+            """)
+    List<Object[]> puntuarCategoriasPorCliente(
+            @Param("email") String email,
+            @Param("estados") Collection<EstadoTurno> estados,
+            @Param("hace30") LocalDateTime hace30,
+            @Param("hace90") LocalDateTime hace90,
+            @Param("hace180") LocalDateTime hace180);
+
+    /** Sucursales que el cliente ya reservo con turnos vigentes o realizados. */
+    @Query("""
+            SELECT DISTINCT t.servicio.sucursal.id
+            FROM Turno t
+            WHERE t.cliente.email = :email
+              AND t.estado IN :estados
+            """)
+    List<Integer> findSucursalesYaReservadasPorCliente(
+            @Param("email") String email,
+            @Param("estados") Collection<EstadoTurno> estados);
+
 
 }

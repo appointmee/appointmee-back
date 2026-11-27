@@ -347,13 +347,22 @@ public class SucursalService {
     /// en una sola query. La categoria y la foto ya vienen cargadas por el
     /// @EntityGraph del repository, asi que no hay queries por sucursal.
 
-    private List<SucursalMiniDTO> mapearSucursalesMini(List<Sucursal> sucursales) {
+    public List<SucursalMiniDTO> mapearSucursalesMini(List<Sucursal> sucursales) {
+
+        return ordenarSucursalesPorPuntuacionYPopularidad(
+                mapearSucursalesMiniEnOrdenRecibido(sucursales));
+    }
+
+    /** Mapea trayendo las puntuaciones en una sola query, pero conserva el
+     * orden recibido. Lo usan las secciones cuyo orden no es el ranking 50/50. */
+    public List<SucursalMiniDTO> mapearSucursalesMiniEnOrdenRecibido(
+            List<Sucursal> sucursales) {
 
         Map<Integer, ResumenPuntuacion> puntuaciones =
                 reseniaService.getPuntuacionesSucursales(
                         sucursales.stream().map(Sucursal::getId).toList());
 
-        List<SucursalMiniDTO> resultado = new java.util.ArrayList<>(sucursales.stream()
+        return new java.util.ArrayList<>(sucursales.stream()
                 .map(suc -> new SucursalMiniDTO(
                         suc.getId(), suc.getNombre(),
                         suc.getCategoria().getCategoria().name(),
@@ -364,8 +373,6 @@ public class SucursalService {
                         suc.getLatitud(), suc.getLongitud())
                 )
                 .toList());
-
-        return ordenarSucursalesPorPuntuacionYPopularidad(resultado);
     }
 
 
