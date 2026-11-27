@@ -44,7 +44,7 @@ class MercadoPagoSandboxAdapterTest {
 
         assertEquals("77", cobro.externalReference());
         assertEquals("https://sandbox.mercadopago.com/checkout/init", cobro.initPoint());
-        assertEquals(EstadoPagoProveedor.PENDING, cobro.estado());
+        assertEquals(PaymentState.AUTHORIZED, cobro.estado());
     }
 
     @Test
@@ -71,6 +71,10 @@ class MercadoPagoSandboxAdapterTest {
         assertEquals(EstadoPagoProveedor.PENDING, EstadoPagoProveedor.desdeProveedor("pending", "pending_contingency"));
         assertEquals(EstadoPagoProveedor.CHARGED_BACK, EstadoPagoProveedor.desdeProveedor("charged_back", null));
         assertEquals(EstadoPagoProveedor.UNKNOWN, EstadoPagoProveedor.desdeProveedor("otro", null));
+        assertEquals(PaymentState.CAPTURED, EstadoPagoProveedor.APPROVED.aPaymentState());
+        assertEquals(PaymentState.FAILED, EstadoPagoProveedor.REJECTED.aPaymentState());
+        assertEquals(PaymentState.AUTHORIZED, EstadoPagoProveedor.PENDING.aPaymentState());
+        assertEquals(PaymentState.CHARGED_BACK, EstadoPagoProveedor.CHARGED_BACK.aPaymentState());
     }
 
     @Test
@@ -78,7 +82,9 @@ class MercadoPagoSandboxAdapterTest {
         when(api.obtenerPago("PAGO-1", "TEST-token"))
                 .thenReturn(new PagoApiResponse("PAGO-1", "approved", "accredited", "77"));
 
-        assertEquals(EstadoPagoProveedor.APPROVED, adapter.consultarEstado("PAGO-1"));
+        PagoProveedor pago = adapter.consultarPago("PAGO-1");
+        assertEquals(PaymentState.CAPTURED, pago.estado());
+        assertEquals("77", pago.externalReference());
     }
 
     @Test
@@ -97,6 +103,6 @@ class MercadoPagoSandboxAdapterTest {
         when(api.obtenerPago("PAGO-2", "TEST-token"))
                 .thenThrow(new IllegalStateException("timeout"));
 
-        assertThrows(PaymentProviderException.class, () -> adapter.consultarEstado("PAGO-2"));
+        assertThrows(PaymentProviderException.class, () -> adapter.consultarPago("PAGO-2"));
     }
 }

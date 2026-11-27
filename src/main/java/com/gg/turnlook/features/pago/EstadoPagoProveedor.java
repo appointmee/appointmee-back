@@ -8,6 +8,17 @@ public enum EstadoPagoProveedor {
     CHARGED_BACK,
     UNKNOWN;
 
+    /** Traducción al estado financiero del dominio (no al estado del turno). */
+    public PaymentState aPaymentState() {
+        return switch (this) {
+            case APPROVED -> PaymentState.CAPTURED;
+            case REJECTED -> PaymentState.FAILED;
+            case PENDING -> PaymentState.AUTHORIZED;
+            case CHARGED_BACK -> PaymentState.CHARGED_BACK;
+            case UNKNOWN -> PaymentState.CREATED;
+        };
+    }
+
     public static EstadoPagoProveedor desdeProveedor(String status, String statusDetail) {
         if (status == null || status.isBlank()) {
             return UNKNOWN;
