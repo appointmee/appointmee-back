@@ -93,6 +93,24 @@ class SucursalDescubrimientoServiceTest {
     }
 
     @Test
+    void principalAnonimoDeSpringTambienDejaVaciasLasSeccionesPersonales() {
+        List<SucursalMiniDTO> rankeadas = List.of(dto(1, "SPA"), dto(2, "SPA"));
+        when(sucursalService.listarSucursales()).thenReturn(rankeadas);
+
+        RecomendacionesSucursalesDTO resultado =
+                service.obtenerRecomendaciones("anonymousUser");
+
+        assertEquals(rankeadas.subList(0, 2), resultado.getMejores());
+        assertEquals(rankeadas, resultado.getTodas());
+        assertEquals(List.of(), resultado.getVistasRecientes());
+        assertEquals(List.of(), resultado.getParaVos());
+        verify(usuarioService, never()).listarUsuarioPorEmail(anyString());
+        verify(visitaRepo, never()).findSucursalesRecientesOperativas(anyInt(), any());
+        verify(turnoRepo, never()).puntuarCategoriasPorCliente(
+                anyString(), anyCollection(), any(), any(), any());
+    }
+
+    @Test
     void masDemandadasMantieneElOrdenDelConteoYUsaSoloEstadosValidos() {
         when(turnoRepo.contarTurnosRecientesPorSucursal(
                 anyCollection(), any(), any())).thenReturn(List.of(
