@@ -5,6 +5,7 @@ import com.gg.turnlook.features.resenia.ReseniaService;
 import com.gg.turnlook.features.sucursal.categoria.ECategoria;
 import com.gg.turnlook.features.sucursal.dto.SucursalCrearDTO;
 import com.gg.turnlook.features.sucursal.dto.SucursalModificarDTO;
+import com.gg.turnlook.features.sucursal.dto.SucursalReactivarDTO;
 import com.gg.turnlook.features.usuario.dto.UsuarioEmailDTO;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
@@ -33,6 +34,17 @@ public class SucursalController {
 
 
     /// ENDPOINTS
+
+
+    @PreAuthorize("hasAnyRole('EMPLEADOR','ADMINISTRADOR')")
+    @PatchMapping("/{sucursalId}/reactivar")
+    public ResponseEntity<?> reactivarSucursal(@PathVariable("sucursalId") Integer sucursalId,
+                                               @Valid @RequestBody SucursalReactivarDTO datos,
+                                               @AuthenticationPrincipal String userEmail) {
+
+        sucursalService.reactivarSucursal(sucursalId, datos, userEmail);
+        return ResponseEntity.ok().body("Se reactivó la sucursal");
+    }
 
 
     @PreAuthorize("hasRole('EMPLEADOR')")
