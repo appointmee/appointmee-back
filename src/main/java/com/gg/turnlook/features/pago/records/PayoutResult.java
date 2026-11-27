@@ -1,4 +1,6 @@
-package com.gg.turnlook.features.pago;
+package com.gg.turnlook.features.pago.records;
+
+import com.gg.turnlook.features.pago.PayoutStatus;
 
 import java.time.LocalDateTime;
 

@@ -1,4 +1,4 @@
-package com.gg.turnlook.features.pago;
+package com.gg.turnlook.features.pago.comandos;
 
 import java.math.BigDecimal;
 

@@ -1,5 +1,9 @@
 package com.gg.turnlook.features.pago;
 
+import com.gg.turnlook.features.pago.comandos.CrearCobroCommand;
+import com.gg.turnlook.features.pago.records.CobroCreado;
+import com.gg.turnlook.features.pago.records.PagoProveedor;
+
 import com.gg.turnlook.common.exception.ConflictException;
 import com.gg.turnlook.common.exception.ForbiddenException;
 import com.gg.turnlook.features.servicio.Servicio;
