@@ -339,7 +339,7 @@ public class SucursalService {
 
     public List<SucursalMiniDTO> listarSucursales() {
 
-        return mapearSucursalesMini(sucRepo.findByActivoTrue());
+        return mapearSucursalesMini(sucRepo.findOperativas(null, null));
     }
 
 
@@ -515,23 +515,9 @@ public class SucursalService {
     public List<SucursalMiniDTO> filtrarListaSucursales(ECategoria categoria,
                                                         String nombre) {
 
-        List<Sucursal> sucursales;
+        String nombreFiltro = (nombre == null || nombre.isBlank()) ? null : nombre;
 
-        boolean tieneNombre = nombre != null && !nombre.isBlank();
-
-        if (categoria != null && tieneNombre) {
-            sucursales =
-                    sucRepo.findByNombreContainingIgnoreCaseAndCategoriaCategoriaAndActivoTrue(
-                            nombre, categoria);
-        } else if (categoria == null && tieneNombre) {
-            sucursales = sucRepo.findByNombreContainingIgnoreCaseAndActivoTrue(nombre);
-        } else if (categoria != null) {
-            sucursales = sucRepo.findByCategoriaCategoriaAndActivoTrue(categoria);
-        } else {
-            return listarSucursales();
-        }
-
-        return mapearSucursalesMini(sucursales);
+        return mapearSucursalesMini(sucRepo.findOperativas(categoria, nombreFiltro));
     }
 
 
