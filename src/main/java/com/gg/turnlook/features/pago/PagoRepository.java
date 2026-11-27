@@ -14,5 +14,9 @@ public interface PagoRepository extends JpaRepository<Pago, Integer> {
 
     List<Pago> findBySucursalIdOrderByCreatedAtDesc(Integer sucursalId);
 
+    List<Pago> findByTurnoClienteEmail(String email);
+
+    List<Pago> findBySucursalIdIn(List<Integer> sucursalIds);
+
     boolean existsByExternalReference(String externalReference);
 }
