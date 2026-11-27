@@ -100,6 +100,10 @@ public class Pago {
             createdAt = ahora;
         }
         updatedAt = ahora;
+        // La sucursal acreedora se deriva del servicio del turno cuando no se informa.
+        if (sucursal == null && turno != null && turno.getServicio() != null) {
+            sucursal = turno.getServicio().getSucursal();
+        }
     }
 
     @PreUpdate
