@@ -105,7 +105,8 @@ public interface SucursalRepository extends JpaRepository<Sucursal, Integer> {
             WHERE s.activo = true
               AND (:categoria IS NULL OR s.categoria.categoria = :categoria)
               AND (:nombre IS NULL OR LOCATE(REPLACE(LOWER(:nombre), ' ', ''),
-                                           REPLACE(LOWER(s.nombre), ' ', '')) > 0)
+                                           REPLACE(LOWER(s.nombre), ' ', '')) > 0
+                   OR STR(s.id) = :nombre)
               AND EXISTS (
                   SELECT 1 FROM Servicio sv
                   WHERE sv.sucursal = s AND sv.activo = true
@@ -135,7 +136,8 @@ public interface SucursalRepository extends JpaRepository<Sucursal, Integer> {
                   AND (CAST(:nombre AS VARCHAR) IS NULL
                        OR POSITION(
                            REPLACE(LOWER(CAST(:nombre AS VARCHAR)), ' ', '')
-                           IN REPLACE(LOWER(s.nombre), ' ', '')) > 0)
+                           IN REPLACE(LOWER(s.nombre), ' ', '')) > 0
+                        OR CAST(s.id AS VARCHAR) = CAST(:nombre AS VARCHAR))
                   AND EXISTS (
                       SELECT 1 FROM servicios sv
                       WHERE sv.sucursal_id = s.id AND sv.activo = true

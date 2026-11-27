@@ -72,6 +72,13 @@ class SucursalDescubrimientoRepositoryTest {
         assertEquals(List.of(sinResenias.getId()),
                 sucRepo.findIdsOperativasOrdenadasPorRanking(
                         null, "sin reseñas", PageRequest.of(0, 10)));
+
+        // El buscador historico tambien acepta el id exacto como termino.
+        String idComoTexto = String.valueOf(sinResenias.getId());
+        assertEquals(1, sucRepo.contarOperativas(null, idComoTexto));
+        assertEquals(List.of(sinResenias.getId()),
+                sucRepo.findIdsOperativasOrdenadasPorRanking(
+                        null, idComoTexto, PageRequest.of(0, 10)));
     }
 
     @Test
