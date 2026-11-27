@@ -262,11 +262,12 @@ class SucursalUbicacionTest {
         sinUbicacion.setId(2);
         sinUbicacion.setDireccion("Calle Sin Ubicacion 3333");
 
-        when(sucRepo.findByActivoTrue()).thenReturn(List.of(conUbicacion, sinUbicacion));
+        when(sucRepo.findOperativas(null, null)).thenReturn(List.of(conUbicacion, sinUbicacion));
         when(reseniaService.getPuntuacionesSucursales(anyList())).thenReturn(Map.of());
 
         List<SucursalMiniDTO> listado = service.listarSucursales();
 
+        verify(sucRepo).findOperativas(null, null);
         assertEquals(2, listado.size());
         SucursalMiniDTO con = listado.stream().filter(d -> d.getId().equals(1)).findFirst().orElseThrow();
         assertEquals(-34.1, con.getLatitud());

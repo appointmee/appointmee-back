@@ -75,6 +75,30 @@ public interface SucursalRepository extends JpaRepository<Sucursal, Integer> {
     List<Sucursal> findByCategoriaCategoriaAndActivoTrue(ECategoria categoria);
 
 
+    // Listados globales y mapa: solo sucursales que pueden recibir solicitudes
+    // de turnos. Se resuelve con EXISTS para no traer colecciones ni duplicar
+    // filas por el producto de servicios y empleados. Los parametros nulos
+    // desactivan el filtro de categoria o nombre; los listados internos del
+    // empleador usan otras consultas y no se ven afectados.
+    @EntityGraph(attributePaths = {"categoria", "fotoPerfil"})
+    @Query("""
+            SELECT s FROM Sucursal s
+            WHERE s.activo = true
+              AND (:categoria IS NULL OR s.categoria.categoria = :categoria)
+              AND (:nombre IS NULL OR LOCATE(REPLACE(LOWER(:nombre), ' ', ''),
+                                           REPLACE(LOWER(s.nombre), ' ', '')) > 0)
+              AND EXISTS (
+                  SELECT 1 FROM Servicio sv
+                  WHERE sv.sucursal = s AND sv.activo = true
+              )
+              AND EXISTS (
+                  SELECT 1 FROM s.empleados e WHERE e.activo = true
+              )
+            """)
+    List<Sucursal> findOperativas(@Param("categoria") ECategoria categoria,
+                                  @Param("nombre") String nombre);
+
+
     @EntityGraph(attributePaths = {"categoria", "fotoPerfil"})
     @Query("""
                 SELECT s FROM Sucursal s
