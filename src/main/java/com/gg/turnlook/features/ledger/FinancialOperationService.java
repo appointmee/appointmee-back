@@ -3,13 +3,13 @@ package com.gg.turnlook.features.ledger;
 import com.gg.turnlook.features.pago.Pago;
 import com.gg.turnlook.features.payment.PaymentState;
 import com.gg.turnlook.features.payment.SettlementState;
-
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.LocalDateTime;
 import java.util.HexFormat;
+import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -44,7 +44,8 @@ public class FinancialOperationService {
         operacion.setToState(hasta);
         operacion.setProviderReference(providerReference);
         operacion.setPrevHash(prevHash);
-        operacion.setHash(calcularHash(prevHash, pago, tipo, desde, hasta, providerReference));
+        operacion.setHash(calcularHash(prevHash, pago.getId(), pago.getAmount(),
+                tipo, desde, hasta, providerReference));
         operacion.setActor(actor);
         return repository.save(operacion);
     }
@@ -65,12 +66,34 @@ public class FinancialOperationService {
         return registrar(pago, tipo, desde, hasta, providerReference, actor);
     }
 
-    private String calcularHash(String prevHash, Pago pago, FinancialOperationType tipo,
-                                String desde, String hasta, String providerReference) {
-        BigDecimal importe = pago.getAmount() == null ? BigDecimal.ZERO : pago.getAmount();
+    /** Verifica que la cadena de hashes de un pago no haya sido modificada. */
+    @Transactional(readOnly = true)
+    public boolean verificarIntegridad(Integer pagoId) {
+        List<FinancialOperation> operaciones = repository.findAllByPagoIdOrderByIdAsc(pagoId);
+        String esperadoPrevio = GENESIS_HASH;
+        for (FinancialOperation operacion : operaciones) {
+            if (!esperadoPrevio.equals(operacion.getPrevHash())) {
+                return false;
+            }
+            String esperado = calcularHash(operacion.getPrevHash(),
+                    operacion.getPago().getId(), operacion.getAmount(), operacion.getType(),
+                    operacion.getFromState(), operacion.getToState(),
+                    operacion.getProviderReference());
+            if (!esperado.equals(operacion.getHash())) {
+                return false;
+            }
+            esperadoPrevio = operacion.getHash();
+        }
+        return true;
+    }
+
+    private String calcularHash(String prevHash, Integer pagoId, BigDecimal amount,
+                                FinancialOperationType tipo, String desde, String hasta,
+                                String providerReference) {
+        BigDecimal importe = amount == null ? BigDecimal.ZERO : amount;
         String payload = String.join("|",
                 prevHash,
-                String.valueOf(pago.getId()),
+                String.valueOf(pagoId),
                 tipo.name(),
                 desde == null ? "" : desde,
                 hasta == null ? "" : hasta,

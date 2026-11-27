@@ -8,12 +8,16 @@ import org.springframework.security.authorization.AuthorizationDeniedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 
 
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
 
     @ExceptionHandler(org.springframework.http.converter.HttpMessageNotReadableException.class)
@@ -107,7 +111,8 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<?> handleGeneral(Exception e){
-        e.printStackTrace(); // dsp sacar
+        // No se registra el mensaje ni el stacktrace: pueden incluir URLs, tokens o datos sensibles.
+        LOGGER.error("Error no controlado ({})", e.getClass().getSimpleName());
         return ResponseEntity.status(500).body("Error interno del servidor");
     }
 

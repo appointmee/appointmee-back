@@ -26,6 +26,7 @@ import com.gg.turnlook.features.webhook.PaymentWebhookEvent;
 import com.gg.turnlook.features.webhook.PaymentWebhookEventRepository;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -242,6 +243,26 @@ class PagosCentralizadosPersistenciaTest {
         assertTrue(bloqueo.getMessage().contains("append-only")
                 || (bloqueo.getCause() != null
                     && bloqueo.getCause().getMessage().contains("append-only")));
+    }
+
+    @Test
+    void detectaManipulacionDelLedgerRompiendoLaCadenaDeHashes() {
+        Pago pago = pagoRepository.saveAndFlush(nuevoPago("ref-integridad", "idem-integridad"));
+        FinancialOperationService servicio = new FinancialOperationService(operationRepository);
+        FinancialOperation primera = servicio.cambiarEstado(pago, PaymentState.CAPTURED,
+                SettlementState.HELD_POLICY, FinancialOperationType.APPROVED,
+                "ORD-INT", "sistema");
+        entityManager.flush();
+        assertTrue(servicio.verificarIntegridad(pago.getId()));
+
+        // Simula un atacante que modifica la BD directamente, evitando @Immutable.
+        entityManager.createNativeQuery(
+                        "update financial_operations set hash = 'TAMPER' where id = :id")
+                .setParameter("id", primera.getId())
+                .executeUpdate();
+        entityManager.clear();
+
+        assertFalse(servicio.verificarIntegridad(pago.getId()));
     }
 
     @Test
