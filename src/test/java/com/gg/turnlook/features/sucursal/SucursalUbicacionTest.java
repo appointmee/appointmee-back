@@ -215,7 +215,7 @@ class SucursalUbicacionTest {
     @Test
     void placeIdDuplicadoAlCrearSeRechazaAntesDeGuardar() {
         prepararCreacion();
-        when(sucRepo.existsByGooglePlaceId(anyString())).thenReturn(true);
+        when(sucRepo.existsByActivoTrueAndGooglePlaceId(anyString())).thenReturn(true);
 
         ConflictException ex = assertThrows(ConflictException.class,
                 () -> service.crearSucursal(crearDTO(-34, -58, "ChIJ_duplicado"), EMPLEADOR));
@@ -228,7 +228,7 @@ class SucursalUbicacionTest {
     void placeIdDuplicadoAlModificarSeRechazaAntesDeGuardar() {
         Sucursal suc = sucursalBase(true);
         prepararModificacion(suc);
-        when(sucRepo.existsByGooglePlaceIdAndIdNot("ChIJ_de_otra", ID)).thenReturn(true);
+        when(sucRepo.existsByActivoTrueAndGooglePlaceIdAndIdNot("ChIJ_de_otra", ID)).thenReturn(true);
 
         SucursalModificarDTO dto = new SucursalModificarDTO();
         dto.setLatitud(-34.7);
@@ -304,12 +304,12 @@ class SucursalUbicacionTest {
         when(catRepo.findById(1)).thenReturn(Optional.of(new Categoria(ECategoria.BARBERIA)));
         when(usuarioService.listarUsuarioPorEmail(EMPLEADOR)).thenReturn(mock(Usuario.class));
         when(sucRepo.existsByDireccionIgnoreCase(anyString())).thenReturn(false);
-        when(sucRepo.existsByGooglePlaceId(anyString())).thenReturn(false);
+        when(sucRepo.existsByActivoTrueAndGooglePlaceId(anyString())).thenReturn(false);
     }
 
     private void prepararModificacion(Sucursal suc) {
         when(sucRepo.findByIdConEmpleador(ID)).thenReturn(Optional.of(suc));
-        when(sucRepo.existsByGooglePlaceIdAndIdNot(anyString(), anyInt())).thenReturn(false);
+        when(sucRepo.existsByActivoTrueAndGooglePlaceIdAndIdNot(anyString(), anyInt())).thenReturn(false);
     }
 
     private void prepararDetalle(Sucursal suc) {

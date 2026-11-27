@@ -213,8 +213,8 @@ public class SucursalService {
     private void validarPlaceIdUnico(String googlePlaceId, Integer idExcluido) {
 
         boolean existe = idExcluido == null
-                ? sucRepo.existsByGooglePlaceId(googlePlaceId)
-                : sucRepo.existsByGooglePlaceIdAndIdNot(googlePlaceId, idExcluido);
+                ? sucRepo.existsByActivoTrueAndGooglePlaceId(googlePlaceId)
+                : sucRepo.existsByActivoTrueAndGooglePlaceIdAndIdNot(googlePlaceId, idExcluido);
 
         if (existe) {
             throw new ConflictException("El Google Place ID ya esta asociado a otra sucursal");
@@ -311,9 +311,7 @@ public class SucursalService {
 
         Sucursal sucursal = listarSucursalPorId(sucursalId);
 
-        sucursal.setActivo(false);
-
-        sucRepo.save(sucursal);
+        inactivarSucursal(sucursal);
     }
 
 
@@ -325,8 +323,16 @@ public class SucursalService {
             throw new ForbiddenException("No tenes permisos");
         }
 
-        sucursal.setActivo(false);
+        inactivarSucursal(sucursal);
+    }
 
+
+    /// La baja no borra los datos de la sucursal: solo la inactiva y libera su
+    /// Google Place ID para que otra sucursal activa pueda usarlo.
+
+    private void inactivarSucursal(Sucursal sucursal) {
+        sucursal.setActivo(false);
+        sucursal.setGooglePlaceId(null);
         sucRepo.save(sucursal);
     }
 
