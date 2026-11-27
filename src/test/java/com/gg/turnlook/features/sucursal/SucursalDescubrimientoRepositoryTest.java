@@ -20,6 +20,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
@@ -82,6 +83,75 @@ class SucursalDescubrimientoRepositoryTest {
     }
 
     @Test
+    void findOperativasAplicaLosFiltrosOpcionalesSinPasarNullALower() {
+        Sucursal spa = sucursalOperativa("Spa Central", ECategoria.SPA,
+                LocalDate.now().minusDays(5));
+        Sucursal barberia = sucursalOperativa("Barbería Norte", ECategoria.BARBERIA,
+                LocalDate.now().minusDays(5));
+        Sucursal peluqueria = sucursalOperativa("Peluquería Sur", ECategoria.PELUQUERIA,
+                LocalDate.now().minusDays(5));
+
+        Sucursal inactiva = sucursalOperativa("Spa Inactivo", ECategoria.SPA,
+                LocalDate.now().minusDays(5));
+        inactiva.setActivo(false);
+        sucRepo.saveAndFlush(inactiva);
+
+        Sucursal sinServicio = sucursal("Spa Sin Servicio", ECategoria.SPA,
+                LocalDate.now().minusDays(5));
+        agregarEmpleado(sinServicio, guardarUsuario("empleado-sin-servicio@test.com", true));
+
+        Sucursal sinEmpleado = sucursal("Spa Sin Empleado", ECategoria.SPA,
+                LocalDate.now().minusDays(5));
+        guardarServicio(sinEmpleado, true);
+        refrescar();
+
+        // Sin nombre ni categoría: se enlazan flags/normalizados no nulos.
+        assertEquals(List.of(spa.getId(), barberia.getId(), peluqueria.getId()),
+                ids(sucRepo.findOperativas(null, null)));
+
+        // Con nombre y sin categoría: ignores mayúsculas y espacios, como antes.
+        assertEquals(List.of(spa.getId()), ids(sucRepo.findOperativas(null, "SPA CENTRAL")));
+
+        // Con categoría y sin nombre.
+        assertEquals(List.of(spa.getId()), ids(sucRepo.findOperativas(ECategoria.SPA, null)));
+
+        // Nombre y categoría combinados.
+        assertEquals(List.of(spa.getId()),
+                ids(sucRepo.findOperativas(ECategoria.SPA, "central")));
+
+        // Sin resultados.
+        assertEquals(List.of(), ids(sucRepo.findOperativas(null, "no existe")));
+
+        // El conteo usa los mismos filtros opcionales.
+        assertEquals(3, sucRepo.contarOperativas(null, null));
+        assertEquals(1, sucRepo.contarOperativas(ECategoria.SPA, "central"));
+    }
+
+    @Test
+    void listadoCompletoIncluyeSucursalesSinReseniasYElRankingSoloOrdena() {
+        List<Sucursal> sucursales = IntStream.rangeClosed(1, 30)
+                .mapToObj(i -> sucursalOperativa("Sucursal " + i, ECategoria.SPA,
+                        LocalDate.now().minusDays(i)))
+                .toList();
+        for (int i = 0; i < 12; i++) {
+            guardarResenia(sucursales.get(i), 5);
+        }
+        refrescar();
+
+        List<Integer> esperadas = sucursales.stream().map(Sucursal::getId).toList();
+        List<Integer> paginaCompleta = sucRepo.findIdsOperativasOrdenadasPorRanking(
+                null, null, PageRequest.of(0, 50));
+
+        assertEquals(30, paginaCompleta.size());
+        assertTrue(paginaCompleta.containsAll(esperadas));
+        assertEquals(30, sucRepo.contarOperativas(null, null));
+
+        // Las 12 con reseña tienen puntaje 1.0; el resto entra con neutral 0.
+        assertEquals(esperadas.subList(0, 12), paginaCompleta.subList(0, 12));
+        assertEquals(esperadas.subList(12, 30), paginaCompleta.subList(12, 30));
+    }
+
+    @Test
     void nuevasIncluyeSoloOperativasCreadasEnLosUltimosDosMeses() {
         Sucursal reciente = sucursalOperativa("Reciente", ECategoria.SPA,
                 LocalDate.now().minusDays(5));
@@ -94,6 +164,14 @@ class SucursalDescubrimientoRepositoryTest {
                 LocalDate.now().minusDays(2));
         inactiva.setActivo(false);
         sucRepo.saveAndFlush(inactiva);
+
+        Sucursal sinServicio = sucursal("Nueva sin servicio", ECategoria.SPA,
+                LocalDate.now().minusDays(2));
+        agregarEmpleado(sinServicio, guardarUsuario("empleado-nueva-sin-servicio@test.com", true));
+
+        Sucursal sinEmpleado = sucursal("Nueva sin empleado", ECategoria.SPA,
+                LocalDate.now().minusDays(2));
+        guardarServicio(sinEmpleado, true);
 
         refrescar();
 
@@ -116,11 +194,15 @@ class SucursalDescubrimientoRepositoryTest {
         Sucursal sinServicio = sucursal("Sin servicio", ECategoria.SPA,
                 LocalDate.now().minusDays(10));
         sucRepo.saveAndFlush(sinServicio);
+        Sucursal sinEmpleado = sucursal("Sin empleado", ECategoria.SPA,
+                LocalDate.now().minusDays(10));
+        guardarServicio(sinEmpleado, true);
 
         guardarVisita(usuario, segunda, LocalDateTime.now().minusDays(1));
         guardarVisita(usuario, primera, LocalDateTime.now().minusDays(2));
         guardarVisita(usuario, inactiva, LocalDateTime.now().minusMinutes(5));
-        guardarVisita(usuario, sinServicio, LocalDateTime.now().minusMinutes(1));
+        guardarVisita(usuario, sinServicio, LocalDateTime.now().minusMinutes(2));
+        guardarVisita(usuario, sinEmpleado, LocalDateTime.now().minusMinutes(1));
         refrescar();
 
         assertEquals(List.of(segunda.getId(), primera.getId()),
@@ -146,6 +228,18 @@ class SucursalDescubrimientoRepositoryTest {
         guardarTurno(servicioSegunda, cliente, EstadoTurno.CANCELADO, ahora.minusDays(5));
         guardarTurno(servicioSegunda, cliente, EstadoTurno.PAGO_RECHAZADO, ahora.minusDays(6));
         guardarTurno(servicioSegunda, cliente, EstadoTurno.CONFIRMADO, ahora.minusDays(45));
+
+        Sucursal sinServicioActivo = sucursal("Sin servicio activo", ECategoria.SPA,
+                LocalDate.now().minusDays(10));
+        Servicio inactivo = servicioActivo(sinServicioActivo);
+        inactivo.setActivo(false);
+        entityManager.flush();
+        guardarTurno(inactivo, cliente, EstadoTurno.CONFIRMADO, ahora.minusDays(1));
+
+        Sucursal sinEmpleado = sucursal("Sin empleado demanda", ECategoria.SPA,
+                LocalDate.now().minusDays(10));
+        guardarTurno(servicioActivo(sinEmpleado), cliente,
+                EstadoTurno.CONFIRMADO, ahora.minusDays(1));
         refrescar();
 
         Map<Integer, Long> conteos = turnoRepo.contarTurnosRecientesPorSucursal(

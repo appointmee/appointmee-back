@@ -178,7 +178,7 @@ public class SucursalDescubrimientoService {
     public PaginaSucursalesDTO listarPaginado(String nombre, String categoria,
                                               String page, String size) {
         ECategoria filtroCategoria = parsearCategoria(categoria);
-        String filtroNombre = nombre == null || nombre.isBlank() ? null : nombre;
+        String filtroNombre = nombre == null || nombre.isBlank() ? null : nombre.trim();
         int numeroPagina = parsearNumero(page, "page", 0);
         int tamanoPagina = parsearNumero(size, "size", TAMANO_PAGINA_DEFECTO);
 
