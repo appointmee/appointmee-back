@@ -111,3 +111,22 @@ CREATE TABLE IF NOT EXISTS payment_configurations (
     CONSTRAINT uk_payment_config_sucursal_proveedor
         UNIQUE (sucursal_id, provider_code)
 );
+
+
+-- SCRUM-353: resultados persistidos de las órdenes de pago simuladas.
+CREATE TABLE IF NOT EXISTS payout_operations (
+    id                BIGSERIAL PRIMARY KEY,
+    reference         VARCHAR(100)  NOT NULL,
+    status            VARCHAR(30)   NOT NULL,
+    amount            NUMERIC(18,2) NOT NULL,
+    sucursal_id       INTEGER       NOT NULL REFERENCES sucursales(id),
+    idempotency_key   VARCHAR(100)  NOT NULL,
+    provider_reference VARCHAR(100) NOT NULL,
+    processed_at      TIMESTAMP     NOT NULL DEFAULT now(),
+    reason            VARCHAR(100),
+    CONSTRAINT uk_payout_operation_reference UNIQUE (reference),
+    CONSTRAINT uk_payout_operation_idempotency UNIQUE (idempotency_key)
+);
+
+CREATE INDEX IF NOT EXISTS idx_payout_operation_sucursal
+    ON payout_operations (sucursal_id, processed_at DESC);

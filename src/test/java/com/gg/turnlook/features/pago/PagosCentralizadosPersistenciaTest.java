@@ -5,6 +5,9 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.gg.turnlook.features.pago.PayoutCommand;
+import com.gg.turnlook.features.pago.PayoutResult;
+import com.gg.turnlook.features.pago.PayoutStatus;
 import com.gg.turnlook.features.servicio.Servicio;
 import com.gg.turnlook.features.servicio.ServicioRepository;
 import com.gg.turnlook.features.sucursal.Sucursal;
@@ -23,12 +26,14 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.dao.DataIntegrityViolationException;
 
 @DataJpaTest(properties = {
         "spring.jpa.hibernate.ddl-auto=create-drop",
         "spring.jpa.database-platform=org.hibernate.dialect.H2Dialect"
 })
+@Import({MockPayoutAdapter.class, JpaPayoutStore.class})
 class PagosCentralizadosPersistenciaTest {
 
     @Autowired private PagoRepository pagoRepository;
@@ -36,6 +41,8 @@ class PagosCentralizadosPersistenciaTest {
     @Autowired private PaymentReleaseRepository releaseRepository;
     @Autowired private FinancialOperationRepository operationRepository;
     @Autowired private PaymentConfigurationRepository configurationRepository;
+    @Autowired private PayoutOperationRepository payoutOperationRepository;
+    @Autowired private MockPayoutAdapter pagosAdapter;
     @Autowired private UsuarioRepository usuarioRepository;
     @Autowired private SucursalRepository sucursalRepository;
     @Autowired private ServicioRepository servicioRepository;
@@ -213,6 +220,27 @@ class PagosCentralizadosPersistenciaTest {
         assertTrue(bloqueo.getMessage().contains("append-only")
                 || (bloqueo.getCause() != null
                     && bloqueo.getCause().getMessage().contains("append-only")));
+    }
+
+    @Test
+    void liquidacionSimuladaPasaDeHeldPolicyAReleasedConElMock() {
+        Pago pago = pagoRepository.saveAndFlush(nuevoPago("ref-mock", "idem-mock-pago"));
+        pago.setPaymentState(PaymentState.CAPTURED);
+        pago.setSettlementState(SettlementState.HELD_POLICY);
+
+        PayoutResult resultado = pagosAdapter.pay(new PayoutCommand(
+                pago.getAmount(), sucursal.getId(), "mock-ref-1", "idem-mock-1"));
+        FinancialOperationService servicio = new FinancialOperationService(operationRepository);
+        servicio.cambiarEstado(pago, PaymentState.CAPTURED, SettlementState.RELEASED,
+                FinancialOperationType.RELEASED, resultado.providerReference(), "sistema");
+        entityManager.flush();
+        entityManager.clear();
+
+        Pago actualizado = pagoRepository.findById(pago.getId()).orElseThrow();
+        assertEquals(SettlementState.RELEASED, actualizado.getSettlementState());
+        assertEquals(PayoutStatus.PAID, pagosAdapter.getStatus("mock-ref-1"));
+        assertTrue(payoutOperationRepository.findByIdempotencyKey("idem-mock-1").isPresent());
+        assertEquals(1, operationRepository.findAllByPagoIdOrderByIdAsc(pago.getId()).size());
     }
 
     private Pago nuevoPago(String referencia, String idempotencia) {
