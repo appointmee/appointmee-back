@@ -84,6 +84,18 @@ class MockPayoutAdapterTest {
     }
 
     @Test
+    void exponeLasFirmasDirectasDelContrato() {
+        PayoutProvider proveedor = adapter;
+
+        PayoutResult pago = proveedor.pay(new BigDecimal("250.00"), 9, "pago-directo", "idem-directo");
+        assertEquals(PayoutStatus.PAID, pago.status());
+
+        PayoutResult reembolso = proveedor.refund("pago-directo", new BigDecimal("250.00"));
+        assertEquals(PayoutStatus.REFUNDED, reembolso.status());
+        assertEquals(PayoutStatus.REFUNDED, proveedor.getStatus("pago-directo"));
+    }
+
+    @Test
     void estadoDeReferenciaDesconocidaEsPendiente() {
         assertEquals(PayoutStatus.PENDING, adapter.getStatus("no-existe"));
     }
