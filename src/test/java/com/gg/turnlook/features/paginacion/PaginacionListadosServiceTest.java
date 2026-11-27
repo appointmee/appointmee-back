@@ -27,6 +27,7 @@ import com.gg.turnlook.features.solicitud.EstadoSolicitud;
 import com.gg.turnlook.features.solicitud.empleado.SolicitudEmpleadoRepository;
 import com.gg.turnlook.features.solicitud.empleado.SolicitudEmpleadoService;
 import com.gg.turnlook.features.solicitud.empleado.dto.SolicitudEmpleadoMiniPropiaDTO;
+import com.gg.turnlook.features.solicitud.empleado.dto.SolicitudEmpleadoMiniSucursalDTO;
 import com.gg.turnlook.features.solicitud.empleador.SolicitudEmpleadorRepository;
 import com.gg.turnlook.features.solicitud.empleador.SolicitudEmpleadorService;
 import com.gg.turnlook.features.solicitud.empleador.dto.SolicitudEmpleadorMiniDTO;
@@ -158,6 +159,56 @@ class PaginacionListadosServiceTest {
         assertEquals(10, pagina.getContent().size());
         assertEquals(2, pagina.getTotalPages());
         assertEquals(10, pagina.getSize());
+    }
+
+    @Test
+    void invitacionesEnviadasMuestranTresYElHistorialPaginaDeDiez() {
+        SolicitudEmpleadoRepository repo = mock(SolicitudEmpleadoRepository.class);
+        SucursalService sucursalService = mock(SucursalService.class);
+        SolicitudEmpleadoService service = new SolicitudEmpleadoService(
+                repo, sucursalService, mock(ReseniaService.class),
+                mock(RolService.class), mock(UsuarioService.class));
+
+        Sucursal sucursal = new Sucursal();
+        sucursal.setId(7);
+        when(sucursalService.listarSucursalPorId(7)).thenReturn(sucursal);
+        when(sucursalService.esEmpleadorAca(sucursal, EMAIL)).thenReturn(true);
+        when(repo.findPageMiniBySucursalId(7, PageRequest.of(0, 3)))
+                .thenReturn(new PageImpl<>(solicitudesSucursal(3), PageRequest.of(0, 3), 14));
+        when(repo.findPageMiniBySucursalId(7, PageRequest.of(1, 10)))
+                .thenReturn(new PageImpl<>(solicitudesSucursal(4), PageRequest.of(1, 10), 14));
+
+        VistaPreviaDTO<SolicitudEmpleadoMiniSucursalDTO> vista =
+                service.listarSolicitudesEnviadas(7, EMAIL);
+        assertEquals(3, vista.getContent().size());
+        assertEquals(14, vista.getTotalElements());
+        assertTrue(vista.isHayMas());
+
+        PaginaDTO<SolicitudEmpleadoMiniSucursalDTO> pagina =
+                service.listarSolicitudesEnviadasPaginadas(7, EMAIL, "1");
+        assertEquals(14, pagina.getTotalElements());
+        assertEquals(2, pagina.getTotalPages());
+        assertEquals(1, pagina.getNumber());
+        assertEquals(10, pagina.getSize());
+        assertEquals(4, pagina.getContent().size());
+    }
+
+    @Test
+    void invitacionesDeOtraSucursalNoSePaginan() {
+        SolicitudEmpleadoRepository repo = mock(SolicitudEmpleadoRepository.class);
+        SucursalService sucursalService = mock(SucursalService.class);
+        SolicitudEmpleadoService service = new SolicitudEmpleadoService(
+                repo, sucursalService, mock(ReseniaService.class),
+                mock(RolService.class), mock(UsuarioService.class));
+
+        Sucursal sucursal = new Sucursal();
+        sucursal.setId(7);
+        when(sucursalService.listarSucursalPorId(7)).thenReturn(sucursal);
+
+        assertThrows(ForbiddenException.class,
+                () -> service.listarSolicitudesEnviadas(7, EMAIL));
+        assertThrows(ForbiddenException.class,
+                () -> service.listarSolicitudesEnviadasPaginadas(7, EMAIL, "0"));
     }
 
     @Test
@@ -294,6 +345,13 @@ class PaginacionListadosServiceTest {
         return java.util.stream.IntStream.range(0, cantidad)
                 .mapToObj(i -> new SolicitudEmpleadoMiniPropiaDTO(
                         i, "Sucursal " + i, LocalDate.now()))
+                .toList();
+    }
+
+    private List<SolicitudEmpleadoMiniSucursalDTO> solicitudesSucursal(int cantidad) {
+        return java.util.stream.IntStream.range(0, cantidad)
+                .mapToObj(i -> new SolicitudEmpleadoMiniSucursalDTO(
+                        i, "Ana", "Gomez", LocalDate.now()))
                 .toList();
     }
 

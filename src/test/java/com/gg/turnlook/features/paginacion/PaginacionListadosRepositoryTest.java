@@ -178,6 +178,33 @@ class PaginacionListadosRepositoryTest {
     }
 
     @Test
+    void invitacionesEnviadasPorSucursalSePaginanEnBase() {
+        Sucursal activa = sucursal("Invitaciones activas");
+        Sucursal baja = sucursal("Invitaciones bajas");
+        baja.setActivo(false);
+        sucursalRepo.saveAndFlush(baja);
+        Usuario empleado = guardarUsuario("invitado-sucursal@test.com", true);
+        for (int i = 0; i < 12; i++) {
+            guardarSolicitudEmpleado(activa, empleado, LocalDate.now().minusDays(i));
+        }
+        guardarSolicitudEmpleado(baja, empleado, LocalDate.now());
+        refrescar();
+
+        Page<?> primera = solicitudEmpleadoRepo.findPageMiniBySucursalId(
+                activa.getId(), PageRequest.of(0, 10));
+        Page<?> ultima = solicitudEmpleadoRepo.findPageMiniBySucursalId(
+                activa.getId(), PageRequest.of(1, 10));
+        Page<?> vistaPrevia = solicitudEmpleadoRepo.findPageMiniBySucursalId(
+                activa.getId(), PageRequest.of(0, 3));
+
+        assertEquals(10, primera.getContent().size());
+        assertEquals(2, ultima.getContent().size());
+        assertEquals(12, primera.getTotalElements());
+        assertEquals(2, primera.getTotalPages());
+        assertEquals(3, vistaPrevia.getContent().size());
+    }
+
+    @Test
     void busquedaAdminDeSucursalesFiltraPorNombreCategoriaEIdEnLaBase() {
         Sucursal una = sucursal("Central Spa");
         servicio(una);

@@ -39,10 +39,10 @@ import org.springframework.stereotype.Service;
 public class SolicitudEmpleadoService {
 
 
-    // El contenedor inicial trae solo las ultimas 5; el historial completo se
-    // navega en paginas de 10.
+    // El contenedor inicial trae 3 o 5 segun el flujo; el historial completo
+    // se navega en paginas de 10.
     private static final int LIMITE_VISTA_PREVIA = 5;
-    private static final int LIMITE_SOLICITUDES_SUCURSAL = PaginacionUtil.TAMANO_PAGINA;
+    private static final int LIMITE_VISTA_PREVIA_SUCURSAL = 3;
 
 
     private final SolicitudEmpleadoRepository solicitudEmpleadoRepo;
@@ -65,23 +65,37 @@ public class SolicitudEmpleadoService {
 
 
 
-    public List<SolicitudEmpleadoMiniSucursalDTO> listarSolicitudesEnviadas(
+    /** Vista previa de las invitaciones enviadas desde una sucursal: 3 registros. */
+    public VistaPreviaDTO<SolicitudEmpleadoMiniSucursalDTO> listarSolicitudesEnviadas(
             Integer sucursalId, String empleadorEmail) {
 
-        Sucursal sucursal = sucursalService.listarSucursalPorId(sucursalId);
+        Sucursal sucursal = sucursalAutorizada(sucursalId, empleadorEmail);
+        Page<SolicitudEmpleadoMiniSucursalDTO> resultado = solicitudEmpleadoRepo
+                .findPageMiniBySucursalId(sucursal.getId(),
+                        PageRequest.of(0, LIMITE_VISTA_PREVIA_SUCURSAL));
 
-        if (!sucursalService.esEmpleadorAca(sucursal, empleadorEmail)) {
-            throw new ForbiddenException("No tenes permisos");
-        }
+        return new VistaPreviaDTO<>(
+                resultado.getContent(),
+                resultado.getTotalElements(),
+                resultado.getTotalElements() > LIMITE_VISTA_PREVIA_SUCURSAL);
+    }
 
-        // Consulta anterior a la optimización. Reemplazada por findMiniBySucursalId.
-        // return solicitudEmpleadoRepo.findBySucursalId(sucursal.getId()).stream()
-        //         .map(sol -> new SolicitudEmpleadoMiniSucursalDTO(
-        //                 sol.getId(), sol.getEmpleado().getNombre(),
-        //                 sol.getEmpleado().getApellido(), sol.getFechaSolicitud())
-        //         ).toList();
-        return solicitudEmpleadoRepo.findMiniBySucursalId(sucursal.getId(),
-                PageRequest.of(0, LIMITE_SOLICITUDES_SUCURSAL));
+    /** Historial completo de invitaciones enviadas: 10 por pagina. */
+    public PaginaDTO<SolicitudEmpleadoMiniSucursalDTO> listarSolicitudesEnviadasPaginadas(
+            Integer sucursalId, String empleadorEmail, String pagina) {
+
+        Sucursal sucursal = sucursalAutorizada(sucursalId, empleadorEmail);
+        Page<SolicitudEmpleadoMiniSucursalDTO> resultado = solicitudEmpleadoRepo
+                .findPageMiniBySucursalId(sucursal.getId(),
+                        PageRequest.of(PaginacionUtil.pagina(pagina),
+                                PaginacionUtil.TAMANO_PAGINA));
+
+        return new PaginaDTO<>(
+                resultado.getContent(),
+                resultado.getTotalElements(),
+                resultado.getTotalPages(),
+                resultado.getNumber(),
+                resultado.getSize());
     }
 
 
@@ -224,6 +238,15 @@ public class SolicitudEmpleadoService {
 
         solicitud.setEstado(EstadoSolicitud.RECHAZADA);
         solicitudEmpleadoRepo.save(solicitud);
+    }
+
+
+    private Sucursal sucursalAutorizada(Integer sucursalId, String empleadorEmail) {
+        Sucursal sucursal = sucursalService.listarSucursalPorId(sucursalId);
+        if (!sucursalService.esEmpleadorAca(sucursal, empleadorEmail)) {
+            throw new ForbiddenException("No tenes permisos");
+        }
+        return sucursal;
     }
 
 
