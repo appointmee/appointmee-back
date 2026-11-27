@@ -120,7 +120,7 @@ class PagoControllerTest {
 
     @Test
     void liquidaYDevuelveElNuevoEstado() throws Exception {
-        PagoResponseDTO liquidado = new PagoResponseDTO(1, 22, 3, "Centro",
+        PagoResponseDTO liquidado = new PagoResponseDTO(1, 22, LocalDateTime.now(), "Corte", 3, "Centro",
                 new BigDecimal("1500.00"), "ARS", PaymentState.CAPTURED,
                 SettlementState.RELEASED, null, "EXT-1", LocalDateTime.now(), null);
         when(service.liquidar(eq(1), eq(EMAIL), any(PayoutRequestDTO.class))).thenReturn(liquidado);
@@ -136,7 +136,7 @@ class PagoControllerTest {
 
     @Test
     void reembolsaParcialmente() throws Exception {
-        PagoResponseDTO reembolsado = new PagoResponseDTO(1, 22, 3, "Centro",
+        PagoResponseDTO reembolsado = new PagoResponseDTO(1, 22, LocalDateTime.now(), "Corte", 3, "Centro",
                 new BigDecimal("1500.00"), "ARS", PaymentState.CAPTURED,
                 SettlementState.REFUNDED, null, "EXT-1", LocalDateTime.now(), null);
         when(service.reembolsar(eq(1), eq(EMAIL), any(RefundRequestDTO.class))).thenReturn(reembolsado);
@@ -149,7 +149,7 @@ class PagoControllerTest {
     }
 
     private PagoResponseDTO dto() {
-        return new PagoResponseDTO(1, 22, 3, "Centro", new BigDecimal("1500.00"), "ARS",
+        return new PagoResponseDTO(1, 22, LocalDateTime.now(), "Corte", 3, "Centro", new BigDecimal("1500.00"), "ARS",
                 PaymentState.CAPTURED, SettlementState.HELD_POLICY, null, "EXT-1",
                 LocalDateTime.now(), null);
     }
