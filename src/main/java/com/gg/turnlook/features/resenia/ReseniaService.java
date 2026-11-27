@@ -32,8 +32,23 @@ public class ReseniaService {
 
     public void guardarResenia(ReseniaCrearDTO reseniaDto, Turno turno) {
 
+        // El empleado se toma siempre del turno que se esta reseñando; el cliente
+        // no puede elegir otro. El nombre y apellido se copian para conservarlos
+        // aunque la cuenta se elimine o se desvincule de la sucursal.
+        Integer empleadoId = null;
+        String empleadoNombre = null;
+        String empleadoApellido = null;
+
+        if (reseniaDto.isIncluirEmpleado()
+                && turno.getEmpleado() != null) {
+            empleadoId = turno.getEmpleado().getId();
+            empleadoNombre = turno.getEmpleado().getNombre();
+            empleadoApellido = turno.getEmpleado().getApellido();
+        }
+
         Resenia reseniaFinal = new Resenia(
-                reseniaDto.getPuntuacion(), reseniaDto.getComentario(), turno);
+                reseniaDto.getPuntuacion(), reseniaDto.getComentario(), turno,
+                empleadoId, empleadoNombre, empleadoApellido);
 
         reseniaRepo.save(reseniaFinal);
     }

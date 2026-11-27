@@ -21,11 +21,22 @@ public interface ReseniaRepository extends JpaRepository<Resenia, Integer> {
      * resuelven en la base. El id como desempate mantiene el orden estable
      * cuando varias resenias comparten fecha. La vista previa reutiliza esta
      * misma consulta con page 0 y tamano 5; el historial usa paginas de 10.
+     * El nombre del empleado sale del snapshot de la resenia, nunca de la
+     * relacion con Usuario; la relacion solo se consulta para saber si sigue
+     * activo y vinculado a la sucursal.
      */
     @Query(value = """
                 SELECT new com.gg.turnlook.features.resenia.dto.ReseniaResponseDTO(
-                    r.puntuacion, r.comentario, r.fechaResenia)
+                    r.puntuacion, r.comentario, r.fechaResenia,
+                    r.empleadoNombre, r.empleadoApellido,
+                    CASE
+                        WHEN r.empleadoId IS NULL OR r.empleadoNombre IS NULL THEN false
+                        WHEN e.id IS NULL OR e.activo = false OR suc.id IS NULL THEN false
+                        ELSE true
+                    END)
                 FROM Resenia r
+                LEFT JOIN r.turno.empleado e
+                LEFT JOIN e.sucursalesEmpleado suc WITH suc.id = :sucursalId
                 WHERE r.turno.servicio.sucursal.id = :sucursalId
                 ORDER BY r.fechaResenia DESC, r.id DESC
             """,
