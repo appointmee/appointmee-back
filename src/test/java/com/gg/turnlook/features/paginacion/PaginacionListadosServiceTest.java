@@ -61,11 +61,15 @@ class PaginacionListadosServiceTest {
         ReseniaService service = new ReseniaService(repo);
         List<ReseniaResponseDTO> resenias = resenias(5);
 
-        when(repo.findReseniasPorSucursal(1, PageRequest.of(0, 5))).thenReturn(resenias);
+        when(repo.findPageReseniasPorSucursal(1, PageRequest.of(0, 5)))
+                .thenReturn(new PageImpl<>(resenias, PageRequest.of(0, 5), 22));
         when(repo.findPageReseniasPorSucursal(1, PageRequest.of(2, 10)))
                 .thenReturn(new PageImpl<>(resenias(2), PageRequest.of(2, 10), 22));
 
-        assertEquals(5, service.getReseniasPorSucursal(1).size());
+        VistaPreviaDTO<ReseniaResponseDTO> vistaPrevia = service.getReseniasPorSucursal(1);
+        assertEquals(5, vistaPrevia.getContent().size());
+        assertEquals(22, vistaPrevia.getTotalElements());
+        assertTrue(vistaPrevia.isHayMas());
 
         PaginaDTO<ReseniaResponseDTO> pagina = service.listarReseniasPaginadas(1, "2");
         assertEquals(22, pagina.getTotalElements());
@@ -73,6 +77,22 @@ class PaginacionListadosServiceTest {
         assertEquals(2, pagina.getNumber());
         assertEquals(10, pagina.getSize());
         assertEquals(2, pagina.getContent().size());
+    }
+
+    @Test
+    void vistaPreviaDeReseniasNoAnunciaMasCuandoElTotalEsCinco() {
+        ReseniaRepository repo = mock(ReseniaRepository.class);
+        ReseniaService service = new ReseniaService(repo);
+        List<ReseniaResponseDTO> resenias = resenias(5);
+
+        when(repo.findPageReseniasPorSucursal(1, PageRequest.of(0, 5)))
+                .thenReturn(new PageImpl<>(resenias, PageRequest.of(0, 5), 5));
+
+        VistaPreviaDTO<ReseniaResponseDTO> vistaPrevia = service.getReseniasPorSucursal(1);
+
+        assertEquals(5, vistaPrevia.getContent().size());
+        assertEquals(5, vistaPrevia.getTotalElements());
+        assertFalse(vistaPrevia.isHayMas());
     }
 
     @Test

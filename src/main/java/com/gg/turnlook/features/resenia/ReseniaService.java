@@ -1,6 +1,7 @@
 package com.gg.turnlook.features.resenia;
 
 import com.gg.turnlook.common.dto.PaginaDTO;
+import com.gg.turnlook.common.dto.VistaPreviaDTO;
 import com.gg.turnlook.common.util.PaginacionUtil;
 import com.gg.turnlook.features.resenia.dto.ReseniaCrearDTO;
 import com.gg.turnlook.features.resenia.dto.ReseniaResponseDTO;
@@ -170,17 +171,21 @@ public class ReseniaService {
     private static final int LIMITE_RESENIAS_DETALLE = 5;
 
 
-    public List<ReseniaResponseDTO> getReseniasPorSucursal(Integer sucursalId) {
+    /**
+     * Vista previa del detalle: las ultimas 5 resenias mas el total y si hay
+     * mas. El contrato coincide con el que consume el frontend
+     * (VistaPreviaReseniasDTO); devolver una lista plana hacia que el cliente
+     * no encontrara content/hayMas y no mostrara ninguna resenia.
+     */
+    public VistaPreviaDTO<ReseniaResponseDTO> getReseniasPorSucursal(Integer sucursalId) {
 
-        // Consulta anterior a la optimización. Reemplazada por findReseniasPorSucursal.
-        // return reseniaRepo.findBySucursalId(sucursalId).stream()
-        //         .map(r -> new ReseniaResponseDTO(
-        //                 r.getPuntuacion(),
-        //                 r.getComentario(),
-        //                 r.getFechaResenia()))
-        //         .toList();
-        return reseniaRepo.findReseniasPorSucursal(sucursalId,
-                PageRequest.of(0, LIMITE_RESENIAS_DETALLE));
+        Page<ReseniaResponseDTO> resultado = reseniaRepo.findPageReseniasPorSucursal(
+                sucursalId, PageRequest.of(0, LIMITE_RESENIAS_DETALLE));
+
+        return new VistaPreviaDTO<>(
+                resultado.getContent(),
+                resultado.getTotalElements(),
+                resultado.getTotalElements() > LIMITE_RESENIAS_DETALLE);
     }
 
     /** Historial completo: 10 resenias por pagina, orden y total en la base. */
