@@ -10,8 +10,10 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.PreRemove;
 import jakarta.persistence.Table;
 import java.math.BigDecimal;
+import org.hibernate.annotations.Immutable;
 import java.time.LocalDateTime;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -24,6 +26,7 @@ import lombok.ToString;
  * prev_hash/hash para detectar manipulaciones dentro del prototipo.
  */
 @Entity
+@Immutable
 @Table(name = "financial_operations")
 @Data
 @NoArgsConstructor
@@ -73,5 +76,11 @@ public class FinancialOperation {
         if (occurredAt == null) {
             occurredAt = LocalDateTime.now();
         }
+    }
+
+    /** El ledger es append-only: ningún código puede borrar un asiento. */
+    @PreRemove
+    void impedirBorrado() {
+        throw new IllegalStateException("FinancialOperation es append-only");
     }
 }
