@@ -19,7 +19,6 @@ import com.gg.turnlook.features.sucursal.categoria.ECategoria;
 import com.gg.turnlook.features.sucursal.dto.SucursalCrearDTO;
 import com.gg.turnlook.features.sucursal.dto.SucursalMiniDTO;
 import com.gg.turnlook.features.sucursal.dto.SucursalModificarDTO;
-import com.gg.turnlook.features.sucursal.dto.SucursalReactivarDTO;
 import com.gg.turnlook.features.sucursal.dto.SucursalResponseDTO;
 import com.gg.turnlook.features.usuario.FotoPerfilUsuario;
 import com.gg.turnlook.features.usuario.Usuario;
@@ -335,47 +334,6 @@ public class SucursalService {
         sucursal.setActivo(false);
         sucursal.setGooglePlaceId(null);
         sucRepo.save(sucursal);
-    }
-
-
-    /// Reactivacion: la sucursal dada de baja no tiene Place ID, por lo que
-    /// debe enviarse uno nuevo y libre antes de volver a activarla. Todo se
-    /// valida antes de persistir el cambio de estado.
-
-    public void reactivarSucursal(Integer sucursalId, SucursalReactivarDTO datos,
-                                  String userEmail) {
-
-        Sucursal suc = sucRepo.findByIdInactivaConEmpleador(sucursalId)
-                .orElseThrow(() -> new NotFoundException("No se encontró la sucursal inactiva"));
-
-        if (!esEmpleadorAca(suc, userEmail)
-                && !usuarioService.esAdmin(usuarioService.listarUsuarioPorEmail(userEmail))) {
-            throw new ForbiddenException("No tenes permisos");
-        }
-
-        String googlePlaceId = normalizarPlaceId(datos.getGooglePlaceId());
-        if (googlePlaceId == null || googlePlaceId.isEmpty()) {
-            throw new BadRequestException("Para reactivar la sucursal debe enviar un Google Place ID");
-        }
-
-        if (googlePlaceId.equals(suc.getGooglePlaceId())) {
-            throw new BadRequestException("Debe enviar un Google Place ID nuevo para reactivar la sucursal");
-        }
-
-        Double latitud = datos.getLatitud() != null ? datos.getLatitud() : suc.getLatitud();
-        Double longitud = datos.getLongitud() != null ? datos.getLongitud() : suc.getLongitud();
-        if (latitud == null || longitud == null) {
-            throw new BadRequestException("La ubicacion debe enviarse completa: latitud, longitud y Google Place ID");
-        }
-
-        validarPlaceIdUnico(googlePlaceId, suc.getId());
-
-        suc.setLatitud(latitud);
-        suc.setLongitud(longitud);
-        suc.setGooglePlaceId(googlePlaceId);
-        suc.setActivo(true);
-
-        guardarConUnicidadDePlaceId(suc);
     }
 
 

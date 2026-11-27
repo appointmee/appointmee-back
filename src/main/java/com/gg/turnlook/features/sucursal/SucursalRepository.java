@@ -109,14 +109,6 @@ public interface SucursalRepository extends JpaRepository<Sucursal, Integer> {
     Optional<Sucursal> findByIdConEmpleador(@Param("id") Integer id);
 
 
-    /// Variante para reactivar: las consultas operativas normales excluyen las
-    /// inactivas, pero aca hay que cargar la sucursal dada de baja.
-
-    @EntityGraph(attributePaths = {"empleador"})
-    @Query("SELECT s FROM Sucursal s WHERE s.id = :id AND s.activo = false")
-    Optional<Sucursal> findByIdInactivaConEmpleador(@Param("id") Integer id);
-
-
     // Detalle de sucursal: categoria, foto, empleador y empleados en una sola
     // query, para que el mapeo no dispare consultas lazy por cada relacion.
     @EntityGraph(attributePaths = {
