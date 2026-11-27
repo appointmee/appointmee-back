@@ -1,54 +1,34 @@
 package com.gg.turnlook.features.pago;
 
-import com.gg.turnlook.features.payment.PaymentGateway;
-import com.gg.turnlook.features.payment.comandos.CrearCobroCommand;
-import com.gg.turnlook.features.payment.records.CobroCreado;
-import com.gg.turnlook.features.payment.records.PagoProveedor;
-import com.gg.turnlook.features.servicio.Servicio;
-import com.gg.turnlook.features.turno.EstadoTurno;
-import com.gg.turnlook.features.turno.Turno;
-import com.gg.turnlook.features.turno.TurnoService;
-
-
 import com.gg.turnlook.common.exception.ConflictException;
 import com.gg.turnlook.common.exception.ForbiddenException;
-import com.gg.turnlook.features.servicio.Servicio;
+import com.gg.turnlook.features.payment.PaymentGateway;
+import com.gg.turnlook.features.payment.PaymentState;
+import com.gg.turnlook.features.payment.records.PagoProveedor;
 import com.gg.turnlook.features.turno.EstadoTurno;
-import com.gg.turnlook.features.turno.Turno;
 import com.gg.turnlook.features.turno.TurnoService;
 import org.springframework.stereotype.Service;
 
-/** Orquesta el cobro usando solo el puerto de dominio, sin SDK del proveedor. */
+/** Fachada del flujo heredado: mantiene POST /pagos/{turnoId} y el webhook. */
 @Service
 public class MercadoPagoService {
 
     private final TurnoService turnoService;
     private final PaymentGateway paymentGateway;
+    private final PagoRepository pagoRepository;
+    private final CobroService cobroService;
 
-    public MercadoPagoService(TurnoService turnoService, PaymentGateway paymentGateway) {
+    public MercadoPagoService(TurnoService turnoService, PaymentGateway paymentGateway,
+                              PagoRepository pagoRepository, CobroService cobroService) {
         this.turnoService = turnoService;
         this.paymentGateway = paymentGateway;
+        this.pagoRepository = pagoRepository;
+        this.cobroService = cobroService;
     }
 
+    /** Devuelve texto plano (init_point) para compatibilidad con el front actual. */
     public String pagar(Integer turnoId, String clienteEmail) {
-        Turno turno = turnoService.listarTurnoPorId(turnoId);
-
-        if (!turno.getCliente().getEmail().equals(clienteEmail)) {
-            throw new ForbiddenException("No tenes permisos");
-        }
-        if (turno.getEstado() != EstadoTurno.PENDIENTE) {
-            throw new ConflictException("Solo se pueden pagar turnos pendientes");
-        }
-
-        Servicio servicio = turno.getServicio();
-        CobroCreado cobro = paymentGateway.crearCobro(new CrearCobroCommand(
-                turnoId,
-                servicio.getPrecio(),
-                "ARS",
-                servicio.getNombre(),
-                clienteEmail,
-                "pago-turno-" + turnoId));
-        return cobro.initPoint();
+        return cobroService.iniciarCobro(turnoId, clienteEmail);
     }
 
     public String procesarWebhook(Long pagoId) {
@@ -57,11 +37,11 @@ public class MercadoPagoService {
             throw new IllegalArgumentException("El pago no referencia un turno");
         }
 
-        final Integer turnoId;
-        try {
-            turnoId = Integer.valueOf(pago.externalReference());
-        } catch (NumberFormatException exception) {
-            throw new IllegalArgumentException("La referencia del turno no es válida", exception);
+        Pago interno = pagoRepository.findByExternalReference(pago.externalReference())
+                .orElseThrow(() -> new IllegalArgumentException("El pago no existe en AppointMee"));
+        Integer turnoId = interno.getTurno().getId();
+        if (pago.estado() == PaymentState.CAPTURED || pago.estado() == PaymentState.FAILED) {
+            cobroService.confirmarCobro(interno.getId(), pago.proveedorReferencia(), pago.estado());
         }
 
         return switch (pago.estado()) {
