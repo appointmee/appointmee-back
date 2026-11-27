@@ -1,0 +1,102 @@
+package com.gg.turnlook.features.pago;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+import com.gg.turnlook.features.pago.api.MercadoPagoApi;
+import com.gg.turnlook.features.pago.api.PagoApiResponse;
+import com.gg.turnlook.features.pago.api.PreferenciaRequest;
+import com.gg.turnlook.features.pago.api.PreferenciaResponse;
+import java.math.BigDecimal;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
+
+class MercadoPagoSandboxAdapterTest {
+
+    private MercadoPagoApi api;
+    private MercadoPagoProperties properties;
+    private MercadoPagoSandboxAdapter adapter;
+
+    @BeforeEach
+    void setUp() {
+        api = mock(MercadoPagoApi.class);
+        properties = new MercadoPagoProperties();
+        properties.setAccessToken("TEST-token");
+        properties.setNotificationUrl("http://localhost:8080/pagos/webhook");
+        adapter = new MercadoPagoSandboxAdapter(api, properties);
+    }
+
+    @Test
+    void creaCobroConReferenciaDelPagoYDevuelveInitPoint() {
+        when(api.crearPreferencia(any(), eq("TEST-token"), eq("idem-1")))
+                .thenReturn(new PreferenciaResponse("PREF-1",
+                        "https://sandbox.mercadopago.com/checkout/init", "pending"));
+
+        CobroCreado cobro = adapter.crearCobro(new CrearCobroCommand(
+                77, new BigDecimal("1500.00"), "ARS", "Corte de pelo",
+                "cliente@example.com", "idem-1"));
+
+        assertEquals("77", cobro.externalReference());
+        assertEquals("https://sandbox.mercadopago.com/checkout/init", cobro.initPoint());
+        assertEquals(EstadoPagoProveedor.PENDING, cobro.estado());
+    }
+
+    @Test
+    void enviaTokenDeAplicacionNotificationUrlYIdempotencia() {
+        when(api.crearPreferencia(any(), any(), any()))
+                .thenReturn(new PreferenciaResponse("PREF-2", "https://init", "pending"));
+
+        adapter.crearCobro(new CrearCobroCommand(
+                78, new BigDecimal("999.00"), "ARS", "Servicio", "p@example.com", "idem-2"));
+
+        ArgumentCaptor<PreferenciaRequest> captor = ArgumentCaptor.forClass(PreferenciaRequest.class);
+        verify(api).crearPreferencia(captor.capture(), eq("TEST-token"), eq("idem-2"));
+        PreferenciaRequest request = captor.getValue();
+        assertEquals("http://localhost:8080/pagos/webhook", request.notificationUrl());
+        assertEquals("78", request.externalReference());
+        assertEquals("ARS", request.items().get(0).currencyId());
+        assertEquals(new BigDecimal("999.00"), request.items().get(0).unitPrice());
+    }
+
+    @Test
+    void mapeaEstadosDelProveedorDeFormaExplicita() {
+        assertEquals(EstadoPagoProveedor.APPROVED, EstadoPagoProveedor.desdeProveedor("approved", "accredited"));
+        assertEquals(EstadoPagoProveedor.REJECTED, EstadoPagoProveedor.desdeProveedor("rejected", "cc_rejected"));
+        assertEquals(EstadoPagoProveedor.PENDING, EstadoPagoProveedor.desdeProveedor("pending", "pending_contingency"));
+        assertEquals(EstadoPagoProveedor.CHARGED_BACK, EstadoPagoProveedor.desdeProveedor("charged_back", null));
+        assertEquals(EstadoPagoProveedor.UNKNOWN, EstadoPagoProveedor.desdeProveedor("otro", null));
+    }
+
+    @Test
+    void traduceElEstadoConsultadoAlDominio() {
+        when(api.obtenerPago("PAGO-1", "TEST-token"))
+                .thenReturn(new PagoApiResponse("PAGO-1", "approved", "accredited", "77"));
+
+        assertEquals(EstadoPagoProveedor.APPROVED, adapter.consultarEstado("PAGO-1"));
+    }
+
+    @Test
+    void noFiltraExcepcionesDelProveedorHaciaElDominio() {
+        when(api.crearPreferencia(any(), any(), any()))
+                .thenThrow(new IllegalStateException("fallo de red del proveedor"));
+
+        PaymentProviderException error = assertThrows(PaymentProviderException.class,
+                () -> adapter.crearCobro(new CrearCobroCommand(
+                        79, new BigDecimal("10.00"), "ARS", "Servicio", "p@example.com", "idem-3")));
+        assertEquals("fallo de red del proveedor", error.getCause().getMessage());
+    }
+
+    @Test
+    void consultarEstadoConFalloDelProveedorLanzaErrorDeDominio() {
+        when(api.obtenerPago("PAGO-2", "TEST-token"))
+                .thenThrow(new IllegalStateException("timeout"));
+
+        assertThrows(PaymentProviderException.class, () -> adapter.consultarEstado("PAGO-2"));
+    }
+}
