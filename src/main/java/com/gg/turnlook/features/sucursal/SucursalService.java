@@ -13,6 +13,7 @@ import com.gg.turnlook.features.imagen.dto.ImagenResponseDTO;
 import com.gg.turnlook.features.resenia.ReseniaService;
 import com.gg.turnlook.features.resenia.ReseniaService.ResumenPuntuacion;
 import com.gg.turnlook.features.solicitud.empleado.GestionEmpleadoService;
+import com.gg.turnlook.features.turno.TurnoBajaService;
 import com.gg.turnlook.features.sucursal.categoria.Categoria;
 import com.gg.turnlook.features.sucursal.categoria.CategoriaRepository;
 import com.gg.turnlook.features.sucursal.categoria.ECategoria;
@@ -56,10 +57,11 @@ public class SucursalService {
     private final ReseniaService reseniaService;
     private final GestionEmpleadoService gestionEmpleadoService;
     private final RolService rolService;
+    private final TurnoBajaService turnoBajaService;
 
 
 
-    public SucursalService(SucursalRepository sucRepo, CategoriaRepository catRepo, ImagenRepository imagenRepo, UsuarioService usuarioService, ImagenService imagenService, ReseniaService reseniaService, GestionEmpleadoService gestionEmpleadoService, RolService rolService) {
+    public SucursalService(SucursalRepository sucRepo, CategoriaRepository catRepo, ImagenRepository imagenRepo, UsuarioService usuarioService, ImagenService imagenService, ReseniaService reseniaService, GestionEmpleadoService gestionEmpleadoService, RolService rolService, TurnoBajaService turnoBajaService) {
         this.sucRepo = sucRepo;
         this.catRepo = catRepo;
         this.imagenRepo = imagenRepo;
@@ -68,6 +70,7 @@ public class SucursalService {
         this.reseniaService = reseniaService;
         this.gestionEmpleadoService = gestionEmpleadoService;
         this.rolService = rolService;
+        this.turnoBajaService = turnoBajaService;
     }
 
 
@@ -86,6 +89,12 @@ public class SucursalService {
         //         sucursal.getEmpleados().stream()
         //                 .anyMatch(u -> u.getEmail().equals(userEmail));
         return sucRepo.contarUsuarioEnSucursal(sucursal.getId(), userEmail) > 0;
+    }
+
+    /** Pertenencia actual del empleado asignado a un turno de esa sucursal. */
+    public boolean empleadoPertenece(Integer sucursalId, Integer empleadoId) {
+        if (sucursalId == null || empleadoId == null) return false;
+        return sucRepo.existeEmpleadoEnSucursal(sucursalId, empleadoId);
     }
 
 
@@ -307,6 +316,7 @@ public class SucursalService {
     }
 
 
+    @Transactional
     public void eliminarSucursal(Integer sucursalId) {
 
         Sucursal sucursal = listarSucursalPorId(sucursalId);
@@ -315,6 +325,7 @@ public class SucursalService {
     }
 
 
+    @Transactional
     public void borrarSucursalPropia(Integer sucursalId, String empleadorEmail) {
 
         Sucursal sucursal = listarSucursalPorId(sucursalId);
@@ -334,6 +345,7 @@ public class SucursalService {
         sucursal.setActivo(false);
         sucursal.setGooglePlaceId(null);
         sucRepo.save(sucursal);
+        turnoBajaService.cancelarPorBajaSucursal(sucursal.getId());
     }
 
 
@@ -657,6 +669,7 @@ public class SucursalService {
     }
 
 
+    @Transactional
     public void eliminarEmpleado(Integer sucursalId, Integer empleadoId,
                                  String empleadorEmail) {
 
@@ -675,6 +688,10 @@ public class SucursalService {
         sucursal.getEmpleados().remove(empleado);
 
         sucRepo.save(sucursal);
+
+        // La baja de la relación no afecta los turnos que el empleado tenga en
+        // otras sucursales.
+        turnoBajaService.cancelarPorDesvinculacion(empleado.getId(), sucursal.getId());
     }
 
 

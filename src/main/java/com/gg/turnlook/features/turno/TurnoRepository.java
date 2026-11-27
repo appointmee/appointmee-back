@@ -152,6 +152,46 @@ public interface TurnoRepository extends JpaRepository<Turno, Integer> {
     @Query("SELECT t.estado FROM Turno t WHERE t.id = :id")
     Optional<EstadoTurno> findEstadoById(@Param("id") Integer id);
 
+    /**
+     * Turnos cancelables de un empleado. Las relaciones se cargan junto con el
+     * turno para poder avisar a las partes sin acceder a lazy loading fuera de
+     * la transacción que realiza la baja.
+     */
+    @EntityGraph(attributePaths = {
+            "cliente", "empleado", "empleado.fotoPerfil",
+            "servicio", "servicio.sucursal", "servicio.sucursal.empleador",
+            "resenia"})
+    @Query("SELECT t FROM Turno t WHERE t.empleado.id = :empleadoId AND t.estado IN :estados")
+    List<Turno> findCancelablesPorEmpleado(
+            @Param("empleadoId") Integer empleadoId,
+            @Param("estados") Collection<EstadoTurno> estados);
+
+    /** Turnos cancelables de una sucursal, con las mismas relaciones cargadas. */
+    @EntityGraph(attributePaths = {
+            "cliente", "empleado", "empleado.fotoPerfil",
+            "servicio", "servicio.sucursal", "servicio.sucursal.empleador",
+            "resenia"})
+    @Query("SELECT t FROM Turno t WHERE t.servicio.sucursal.id = :sucursalId AND t.estado IN :estados")
+    List<Turno> findCancelablesPorSucursal(
+            @Param("sucursalId") Integer sucursalId,
+            @Param("estados") Collection<EstadoTurno> estados);
+
+    /** Turnos cancelables de un empleado en una sucursal concreta. */
+    @EntityGraph(attributePaths = {
+            "cliente", "empleado", "empleado.fotoPerfil",
+            "servicio", "servicio.sucursal", "servicio.sucursal.empleador",
+            "resenia"})
+    @Query("""
+            SELECT t FROM Turno t
+            WHERE t.empleado.id = :empleadoId
+                AND t.servicio.sucursal.id = :sucursalId
+                AND t.estado IN :estados
+            """)
+    List<Turno> findCancelablesPorEmpleadoYSucursal(
+            @Param("empleadoId") Integer empleadoId,
+            @Param("sucursalId") Integer sucursalId,
+            @Param("estados") Collection<EstadoTurno> estados);
+
     /** Demanda reciente agrupada en base: un solo GROUP BY para todas las
      * sucursales, sin consultas por sucursal. Solo turnos confirmados/realizados. */
     @Query("""
