@@ -25,6 +25,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
@@ -76,11 +77,11 @@ class PaginacionListadosRepositoryTest {
         refrescar();
 
         Page<Object[]> activos = usuarioRepo.buscarMiniAdminPagina(
-                null, null, true, PageRequest.of(0, 10));
+                null, null, true, null, false, null, PageRequest.of(0, 10));
         Page<Object[]> segunda = usuarioRepo.buscarMiniAdminPagina(
-                null, null, true, PageRequest.of(1, 10));
+                null, null, true, null, false, null, PageRequest.of(1, 10));
         Page<Object[]> nombre = usuarioRepo.buscarMiniAdminPagina(
-                "sofia", "lopez", true, PageRequest.of(0, 10));
+                "ofi", "pez", true, null, false, null, PageRequest.of(0, 10));
 
         assertEquals(10, activos.getContent().size());
         assertEquals(2, segunda.getContent().size());
@@ -206,25 +207,41 @@ class PaginacionListadosRepositoryTest {
 
     @Test
     void busquedaAdminDeSucursalesFiltraPorNombreCategoriaEIdEnLaBase() {
-        Sucursal una = sucursal("Central Spa");
+        Sucursal una = sucursal("Central Spa", ECategoria.SPA);
         servicio(una);
         una.getEmpleados().add(guardarUsuario("empleado-central@test.com", true));
         sucursalRepo.saveAndFlush(una);
 
-        Sucursal otra = sucursal("Sucursal Norte");
+        Sucursal otra = sucursal("Sucursal Norte", ECategoria.SPA);
         servicio(otra);
         otra.getEmpleados().add(guardarUsuario("empleado-norte@test.com", true));
         sucursalRepo.saveAndFlush(otra);
+
+        Sucursal tercera = sucursal("Central Peluquería", ECategoria.PELUQUERIA);
+        servicio(tercera);
+        tercera.getEmpleados().add(guardarUsuario("empleado-peluqueria@test.com", true));
+        sucursalRepo.saveAndFlush(tercera);
         refrescar();
 
-        assertEquals(2, sucursalRepo.contarOperativasParaAdmin(null));
-        assertEquals(1, sucursalRepo.contarOperativasParaAdmin("central"));
+        assertEquals(3, sucursalRepo.contarOperativasParaAdmin(null));
+        assertEquals(2, sucursalRepo.contarOperativasParaAdmin("central"));
         assertEquals(2, sucursalRepo.contarOperativasParaAdmin("spa"));
         assertEquals(1, sucursalRepo.contarOperativasParaAdmin(String.valueOf(una.getId())));
-        assertEquals(2, sucursalRepo.findIdsOperativasParaAdmin(
+        assertEquals(3, sucursalRepo.findIdsOperativasParaAdmin(
                 null, PageRequest.of(0, 10)).size());
         assertEquals(1, sucursalRepo.findIdsOperativasParaAdmin(
                 "norte", PageRequest.of(0, 10)).size());
+
+        assertEquals(1, sucursalRepo.contarOperativasParaAdmin(
+                null, "central", ECategoria.PELUQUERIA));
+        assertEquals(1, sucursalRepo.contarOperativasParaAdmin(
+                null, "central", ECategoria.SPA));
+        assertEquals(0, sucursalRepo.contarOperativasParaAdmin(
+                null, "central", ECategoria.VETERINARIA));
+        assertEquals(1, sucursalRepo.contarOperativasParaAdmin(
+                String.valueOf(tercera.getId()), "central", ECategoria.PELUQUERIA));
+        assertEquals(List.of(tercera.getId()), sucursalRepo.findIdsOperativasParaAdmin(
+                null, "central", "PELUQUERIA", PageRequest.of(0, 10)));
     }
 
     @Test
@@ -257,7 +274,11 @@ class PaginacionListadosRepositoryTest {
     }
 
     private Sucursal sucursal(String nombre) {
-        Categoria categoria = new Categoria(ECategoria.SPA);
+        return sucursal(nombre, ECategoria.SPA);
+    }
+
+    private Sucursal sucursal(String nombre, ECategoria categoriaEnum) {
+        Categoria categoria = new Categoria(categoriaEnum);
         entityManager.persist(categoria);
         Sucursal sucursal = new Sucursal();
         sucursal.setNombre(nombre);

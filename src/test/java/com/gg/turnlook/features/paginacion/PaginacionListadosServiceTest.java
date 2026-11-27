@@ -36,12 +36,14 @@ import com.gg.turnlook.features.sucursal.SucursalDescubrimientoService;
 import com.gg.turnlook.features.sucursal.SucursalRepository;
 import com.gg.turnlook.features.sucursal.SucursalService;
 import com.gg.turnlook.features.sucursal.SucursalVisitaRepository;
+import com.gg.turnlook.features.sucursal.categoria.ECategoria;
 import com.gg.turnlook.features.turno.EstadoTurno;
 import com.gg.turnlook.features.turno.TurnoRepository;
 import com.gg.turnlook.features.turno.TurnoService;
 import com.gg.turnlook.features.turno.dto.TurnoMiniDTO;
 import com.gg.turnlook.features.usuario.UsuarioRepository;
 import com.gg.turnlook.features.usuario.UsuarioService;
+import com.gg.turnlook.features.usuario.rol.ERol;
 import com.gg.turnlook.features.usuario.rol.RolService;
 import com.gg.turnlook.features.verificacion.VerificacionRepository;
 import java.time.LocalDate;
@@ -292,14 +294,77 @@ class PaginacionListadosServiceTest {
                 mock(BloqueoUsuario.class), mock(VerificacionRepository.class),
                 mock(com.gg.turnlook.features.turno.TurnoBajaService.class));
 
-        when(repo.buscarMiniAdminPagina("Ana", "Gomez", true, PageRequest.of(1, 10)))
+        when(repo.buscarMiniAdminPagina(
+                "An", "Go", true, null, false, null, PageRequest.of(1, 10)))
                 .thenReturn(new PageImpl<>(List.of(), PageRequest.of(1, 10), 21));
 
-        PaginaDTO<?> pagina = service.listarUsuariosPaginados("Ana", "Gomez", true, "1");
+        PaginaDTO<?> pagina = service.listarUsuariosPaginados(
+                " An ", " Go ", true, null, null, "1");
         assertEquals(21, pagina.getTotalElements());
         assertEquals(3, pagina.getTotalPages());
         assertEquals(10, pagina.getSize());
-        verify(repo).buscarMiniAdminPagina("Ana", "Gomez", true, PageRequest.of(1, 10));
+        verify(repo).buscarMiniAdminPagina(
+                "An", "Go", true, null, false, null, PageRequest.of(1, 10));
+    }
+
+    @Test
+    void usuariosPaginadosCombinanEmailYRolConElRestoDeFiltros() {
+        UsuarioRepository repo = mock(UsuarioRepository.class);
+        UsuarioService service = new UsuarioService(
+                repo, mock(RolService.class), mock(ImagenService.class),
+                mock(ReseniaService.class), mock(org.springframework.security.crypto.password.PasswordEncoder.class),
+                mock(RefreshTokenRepository.class), mock(PasswordResetTokenRepository.class),
+                mock(BloqueoUsuario.class), mock(VerificacionRepository.class),
+                mock(com.gg.turnlook.features.turno.TurnoBajaService.class));
+
+        when(repo.buscarMiniAdminPagina(
+                "An", "Go", true, "ANA@", true, ERol.CLIENTE, PageRequest.of(0, 10)))
+                .thenReturn(new PageImpl<>(List.of(), PageRequest.of(0, 10), 11));
+
+        PaginaDTO<?> pagina = service.listarUsuariosPaginados(
+                " An ", " Go ", true, " ANA@ ", "cliente", "0");
+
+        assertEquals(11, pagina.getTotalElements());
+        assertEquals(2, pagina.getTotalPages());
+        verify(repo).buscarMiniAdminPagina(
+                "An", "Go", true, "ANA@", true, ERol.CLIENTE, PageRequest.of(0, 10));
+    }
+
+    @Test
+    void rolInvalidoEsErrorDelPedido() {
+        UsuarioRepository repo = mock(UsuarioRepository.class);
+        UsuarioService service = new UsuarioService(
+                repo, mock(RolService.class), mock(ImagenService.class),
+                mock(ReseniaService.class), mock(org.springframework.security.crypto.password.PasswordEncoder.class),
+                mock(RefreshTokenRepository.class), mock(PasswordResetTokenRepository.class),
+                mock(BloqueoUsuario.class), mock(VerificacionRepository.class),
+                mock(com.gg.turnlook.features.turno.TurnoBajaService.class));
+
+        assertThrows(BadRequestException.class, () -> service.listarUsuariosPaginados(
+                null, null, null, null, "ROL_DESCONOCIDO", "0"));
+    }
+
+    @Test
+    void sucursalesAdminCombinanFiltrosYConservanTotales() {
+        SucursalRepository repo = mock(SucursalRepository.class);
+        SucursalDescubrimientoService service = new SucursalDescubrimientoService(
+                repo, mock(TurnoRepository.class), mock(SucursalVisitaRepository.class),
+                mock(UsuarioService.class), mock(SucursalService.class));
+
+        when(repo.findIdsOperativasParaAdmin(
+                " spa ", "Central", "SPA", PageRequest.of(1, 10))).thenReturn(List.of());
+        when(repo.contarOperativasParaAdmin(" spa ", "Central", ECategoria.SPA))
+                .thenReturn(21L);
+
+        var pagina = service.listarPaginadoAdmin(" spa ", " Central ", "spa", "1");
+
+        assertEquals(21, pagina.getTotalElements());
+        assertEquals(3, pagina.getTotalPages());
+        assertEquals(10, pagina.getSize());
+        assertEquals(1, pagina.getNumber());
+        verify(repo).findIdsOperativasParaAdmin(
+                " spa ", "Central", "SPA", PageRequest.of(1, 10));
+        verify(repo).contarOperativasParaAdmin(" spa ", "Central", ECategoria.SPA);
     }
 
     @Test
