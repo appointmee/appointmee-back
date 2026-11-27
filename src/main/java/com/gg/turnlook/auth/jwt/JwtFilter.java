@@ -13,6 +13,12 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import lombok.RequiredArgsConstructor;
 @Component @RequiredArgsConstructor
 public class JwtFilter extends OncePerRequestFilter {
+    // Lecturas públicas cuyo contenido no depende de la sesión: un token
+    // vencido no debe impedir verlas, pero un token válido sí debe seguir
+    // resolviendo al usuario para las secciones personales.
+    private static final java.util.Set<String> LECTURAS_PUBLICAS =
+            java.util.Set.of("/sucursales/recomendaciones");
+
     private final JwtService jwtService;
     private final UsuarioRepository usuarioRepo;
     @Override
@@ -41,6 +47,10 @@ public class JwtFilter extends OncePerRequestFilter {
                     new UsernamePasswordAuthenticationToken(usuario.getEmail(), null, roles));
         } catch (JwtException | IllegalArgumentException e) {
             SecurityContextHolder.clearContext();
+            if (LECTURAS_PUBLICAS.contains(path)) {
+                chain.doFilter(request, response);
+                return;
+            }
             response.setStatus(401);
             response.setContentType("application/json;charset=UTF-8");
             response.getWriter().write("{\"message\":\"Token inválido, vencido o revocado\"}");

@@ -37,6 +37,8 @@ public class SucursalDescubrimientoService {
     private static final int LIMITE_VISTA_PREVIA = 4;
     private static final int TAMANO_PAGINA_DEFECTO = 12;
     private static final int TAMANO_PAGINA_MAXIMO = 50;
+    /** Spring resuelve el principal anónimo con este nombre, no con null. */
+    private static final String USUARIO_ANONIMO = "anonymousUser";
     private static final Collection<EstadoTurno> ESTADOS_CONTABILIZADOS =
             List.of(EstadoTurno.CONFIRMADO, EstadoTurno.REALIZADO);
 
@@ -95,8 +97,12 @@ public class SucursalDescubrimientoService {
         return sucursalService.mapearSucursalesMiniEnOrdenRecibido(sucursales);
     }
 
+    private static boolean esUsuarioAutenticado(String email) {
+        return email != null && !email.isBlank() && !USUARIO_ANONIMO.equals(email);
+    }
+
     private List<SucursalMiniDTO> vistasRecientes(String email) {
-        if (email == null || email.isBlank()) {
+        if (!esUsuarioAutenticado(email)) {
             return List.of();
         }
 
@@ -127,7 +133,7 @@ public class SucursalDescubrimientoService {
      * ultimo semestre y, dentro de cada categoria, conserva el ranking actual. */
     private List<SucursalMiniDTO> paraVos(String email,
                                           List<SucursalMiniDTO> rankeadas) {
-        if (email == null || email.isBlank()) {
+        if (!esUsuarioAutenticado(email)) {
             return List.of();
         }
 
