@@ -217,7 +217,7 @@ class SucursalDescubrimientoServiceTest {
         when(sucRepo.findIdsOperativasOrdenadasPorRanking(
                 eq("SPA"), eq("centro"), any()))
                 .thenReturn(List.of(3, 1));
-        when(sucRepo.contarOperativas(ECategoria.SPA, "centro")).thenReturn(14L);
+        when(sucRepo.contarOperativas(ECategoria.SPA, "centro")).thenReturn(12L);
         when(sucRepo.findByIdsConCategoriaYFoto(List.of(3, 1)))
                 .thenReturn(List.of(sucursal(1), sucursal(3)));
 
@@ -226,12 +226,12 @@ class SucursalDescubrimientoServiceTest {
 
         assertEquals(List.of(3, 1), pagina.getContent().stream()
                 .map(SucursalMiniDTO::getId).toList());
-        assertEquals(14, pagina.getTotalElements());
-        assertEquals(7, pagina.getTotalPages());
+        assertEquals(12, pagina.getTotalElements());
+        assertEquals(2, pagina.getTotalPages());
         assertEquals(1, pagina.getNumber());
-        assertEquals(2, pagina.getSize());
+        assertEquals(10, pagina.getSize());
         verify(sucRepo).findIdsOperativasOrdenadasPorRanking(
-                "SPA", "centro", PageRequest.of(1, 2));
+                "SPA", "centro", PageRequest.of(1, 10));
     }
 
     @Test

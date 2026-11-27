@@ -5,6 +5,7 @@ import com.gg.turnlook.features.usuario.rol.ERol;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -81,6 +82,32 @@ public interface UsuarioRepository extends JpaRepository<Usuario,Integer> {
                 ORDER BY u.id
             """)
     List<Object[]> buscarMiniAdmin(
+            @Param("nombre") String nombre,
+            @Param("apellido") String apellido,
+            @Param("activo") Boolean activo,
+            Pageable pageable);
+
+    /** Variante paginada: cuenta con los mismos filtros que la consulta. */
+    @Query(value = """
+                SELECT u.id, u.nombre, u.apellido, u.activo, foto.url
+                FROM Usuario u
+                LEFT JOIN u.fotoPerfil foto
+                WHERE (CAST(:nombre AS string) IS NULL
+                        OR LOWER(u.nombre) = LOWER(CAST(:nombre AS string)))
+                    AND (CAST(:apellido AS string) IS NULL
+                        OR LOWER(u.apellido) = LOWER(CAST(:apellido AS string)))
+                    AND (CAST(:activo AS boolean) IS NULL OR u.activo = :activo)
+                ORDER BY u.id
+            """,
+            countQuery = """
+                SELECT COUNT(u) FROM Usuario u
+                WHERE (CAST(:nombre AS string) IS NULL
+                        OR LOWER(u.nombre) = LOWER(CAST(:nombre AS string)))
+                    AND (CAST(:apellido AS string) IS NULL
+                        OR LOWER(u.apellido) = LOWER(CAST(:apellido AS string)))
+                    AND (CAST(:activo AS boolean) IS NULL OR u.activo = :activo)
+            """)
+    Page<Object[]> buscarMiniAdminPagina(
             @Param("nombre") String nombre,
             @Param("apellido") String apellido,
             @Param("activo") Boolean activo,

@@ -25,6 +25,7 @@ public class SolicitudEmpleadoController {
     /// ENDPOINTS
 
 
+    /** Vista previa de 3 invitaciones enviadas desde la sucursal. */
     @PreAuthorize("hasRole('EMPLEADOR')")
     @GetMapping("/enviadas/sucursal/{sucursalId}")
     public ResponseEntity<?> listarSolicitudesEnviadasPorSucursal(
@@ -35,6 +36,19 @@ public class SolicitudEmpleadoController {
                 solicitudEmpleadoService.listarSolicitudesEnviadas(sucursalId, empleadorEmail));
     }
 
+    /** Historial completo: 10 invitaciones por pagina, solo las enviadas. */
+    @PreAuthorize("hasRole('EMPLEADOR')")
+    @GetMapping("/enviadas/sucursal/{sucursalId}/paginado")
+    public ResponseEntity<?> listarSolicitudesEnviadasPorSucursalPaginadas(
+            @PathVariable("sucursalId") Integer sucursalId,
+            @AuthenticationPrincipal String empleadorEmail,
+            @RequestParam(name = "page", defaultValue = "0") String page) {
+
+        return ResponseEntity.ok().body(
+                solicitudEmpleadoService.listarSolicitudesEnviadasPaginadas(
+                        sucursalId, empleadorEmail, page));
+    }
+
 
     @PreAuthorize("hasRole('CLIENTE')")
     @GetMapping("/recibidas")
@@ -43,6 +57,17 @@ public class SolicitudEmpleadoController {
 
         return ResponseEntity.ok().body(
                 solicitudEmpleadoService.listarSolicitudesRecibidas(userEmail));
+    }
+
+    /** Historial completo: 10 solicitudes por pagina, solo las recibidas. */
+    @PreAuthorize("hasRole('CLIENTE')")
+    @GetMapping("/recibidas/paginado")
+    public ResponseEntity<?> listarSolicitudesRecibidasPaginadas(
+            @AuthenticationPrincipal String userEmail,
+            @RequestParam(name = "page", defaultValue = "0") String page) {
+
+        return ResponseEntity.ok().body(
+                solicitudEmpleadoService.listarSolicitudesRecibidasPaginadas(userEmail, page));
     }
 
 

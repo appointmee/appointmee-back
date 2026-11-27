@@ -1,6 +1,8 @@
 package com.gg.turnlook.features.usuario;
 
+import com.gg.turnlook.common.dto.PaginaDTO;
 import com.gg.turnlook.common.util.DiasSemanaUtil;
+import com.gg.turnlook.common.util.PaginacionUtil;
 
 import com.gg.turnlook.auth.dto.LoginDTO;
 import com.gg.turnlook.common.exception.ConflictException;
@@ -30,6 +32,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -41,9 +44,9 @@ import org.springframework.stereotype.Service;
 public class UsuarioService {
 
 
-    // Limite del listado administrativo. Se mantiene el retorno List para no
-    // cambiar el contrato de la API, pero se evita traer todos los usuarios.
-    private static final int LIMITE_USUARIOS_ADMIN = 500;
+    // Los clientes del listado simple reciben solo la primera pagina; la
+    // navegacion completa usa el endpoint paginado.
+    private static final int LIMITE_USUARIOS_ADMIN = PaginacionUtil.TAMANO_PAGINA;
 
 
     private final UsuarioRepository usRepo;
@@ -224,6 +227,22 @@ public class UsuarioService {
     public List<UsuarioMiniAdminDTO> filtrarListaUsuarios(String nombre, String apellido, Boolean activo) {
         return mapearMiniAdmin(usRepo.buscarMiniAdmin(nombre, apellido, activo,
                 PageRequest.of(0, LIMITE_USUARIOS_ADMIN)));
+    }
+
+    /** Listado administrativo completo: filtros, orden y conteo en la base. */
+    public PaginaDTO<UsuarioMiniAdminDTO> listarUsuariosPaginados(
+            String nombre, String apellido, Boolean activo, String pagina) {
+
+        Page<Object[]> resultado = usRepo.buscarMiniAdminPagina(
+                nombre, apellido, activo,
+                PageRequest.of(PaginacionUtil.pagina(pagina), PaginacionUtil.TAMANO_PAGINA));
+
+        return new PaginaDTO<>(
+                mapearMiniAdmin(resultado.getContent()),
+                resultado.getTotalElements(),
+                resultado.getTotalPages(),
+                resultado.getNumber(),
+                resultado.getSize());
     }
 
     private List<UsuarioMiniAdminDTO> mapearMiniAdmin(List<Object[]> filas) {

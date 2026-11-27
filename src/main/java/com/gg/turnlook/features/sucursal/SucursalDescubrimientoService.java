@@ -1,6 +1,7 @@
 package com.gg.turnlook.features.sucursal;
 
 import com.gg.turnlook.common.exception.BadRequestException;
+import com.gg.turnlook.common.util.PaginacionUtil;
 import com.gg.turnlook.features.sucursal.categoria.ECategoria;
 import com.gg.turnlook.features.sucursal.dto.PaginaSucursalesDTO;
 import com.gg.turnlook.features.sucursal.dto.RecomendacionesSucursalesDTO;
@@ -35,7 +36,7 @@ public class SucursalDescubrimientoService {
 
     private static final int LIMITE_SECCION = 10;
     private static final int LIMITE_VISTA_PREVIA = 4;
-    private static final int TAMANO_PAGINA_DEFECTO = 12;
+    private static final int TAMANO_PAGINA_DEFECTO = PaginacionUtil.TAMANO_PAGINA;
     private static final int TAMANO_PAGINA_MAXIMO = 50;
     /** Spring resuelve el principal anónimo con este nombre, no con null. */
     private static final String USUARIO_ANONIMO = "anonymousUser";
@@ -186,11 +187,13 @@ public class SucursalDescubrimientoService {
         ECategoria filtroCategoria = parsearCategoria(categoria);
         String filtroNombre = nombre == null || nombre.isBlank() ? null : nombre.trim();
         int numeroPagina = parsearNumero(page, "page", 0);
-        int tamanoPagina = parsearNumero(size, "size", TAMANO_PAGINA_DEFECTO);
+        int tamanoSolicitado = parsearNumero(size, "size", TAMANO_PAGINA_DEFECTO);
 
-        validarPaginacion(numeroPagina, tamanoPagina);
+        validarPaginacion(numeroPagina, tamanoSolicitado);
 
-        PageRequest pagina = PageRequest.of(numeroPagina, tamanoPagina);
+        // Tamano fijo de esta historia: el cliente puede pedir paginas, no
+        // cambiar cuantos registros trae cada una.
+        PageRequest pagina = PageRequest.of(numeroPagina, PaginacionUtil.TAMANO_PAGINA);
         List<Integer> ids = sucRepo.findIdsOperativasOrdenadasPorRanking(
                 filtroCategoria == null ? null : filtroCategoria.name(),
                 filtroNombre,
@@ -206,6 +209,21 @@ public class SucursalDescubrimientoService {
                 resultado.getTotalPages(),
                 resultado.getNumber(),
                 resultado.getSize());
+    }
+
+    /** Listado administrativo: busqueda libre en la base, 10 por pagina. */
+    @Transactional(readOnly = true)
+    public PaginaSucursalesDTO listarPaginadoAdmin(String termino, String page) {
+        PageRequest pagina = PageRequest.of(
+                PaginacionUtil.pagina(page), PaginacionUtil.TAMANO_PAGINA);
+
+        List<Integer> ids = sucRepo.findIdsOperativasParaAdmin(termino, pagina);
+        long total = sucRepo.contarOperativasParaAdmin(termino);
+
+        return new PaginaSucursalesDTO(
+                mapearEnOrdenDeIds(ids), total,
+                (int) Math.ceil((double) total / PaginacionUtil.TAMANO_PAGINA),
+                pagina.getPageNumber(), pagina.getPageSize());
     }
 
     private List<SucursalMiniDTO> mapearEnOrdenDeIds(List<Integer> ids) {

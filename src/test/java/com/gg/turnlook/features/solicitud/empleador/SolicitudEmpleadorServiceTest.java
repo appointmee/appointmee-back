@@ -226,16 +226,16 @@ class SolicitudEmpleadorServiceTest {
                 .thenReturn(new PageImpl<>(
                         List.of(mini(5, EstadoSolicitud.APROBADA),
                                 mini(4, EstadoSolicitud.APROBADA)),
-                        PageRequest.of(1, 2), 5));
+                        PageRequest.of(1, 10), 12));
 
         PaginaSolicitudesEmpleadorDTO pagina =
                 service.listarSolicitudesAdministrativas("aprobada", "1", "2");
 
         assertEquals(2, pagina.getContent().size());
-        assertEquals(5, pagina.getTotalElements());
-        assertEquals(3, pagina.getTotalPages());
+        assertEquals(12, pagina.getTotalElements());
+        assertEquals(2, pagina.getTotalPages());
         assertEquals(1, pagina.getNumber());
-        assertEquals(2, pagina.getSize());
+        assertEquals(10, pagina.getSize());
         assertTrue(pagina.getContent().stream()
                 .allMatch(d -> d.getEstado() == EstadoSolicitud.APROBADA));
 
@@ -244,7 +244,7 @@ class SolicitudEmpleadorServiceTest {
         ArgumentCaptor<Pageable> paginaCaptor = ArgumentCaptor.forClass(Pageable.class);
         verify(repo).findMiniAdmin(estadoCaptor.capture(), paginaCaptor.capture());
         assertEquals(EstadoSolicitud.APROBADA, estadoCaptor.getValue());
-        assertEquals(PageRequest.of(1, 2), paginaCaptor.getValue());
+        assertEquals(PageRequest.of(1, 10), paginaCaptor.getValue());
     }
 
     @Test

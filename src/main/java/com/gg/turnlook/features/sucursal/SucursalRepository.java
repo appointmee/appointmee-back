@@ -226,6 +226,104 @@ public interface SucursalRepository extends JpaRepository<Sucursal, Integer> {
             @Param("nombreOriginal") String nombreOriginal,
             Pageable pageable);
 
+    /** Busqueda libre del listado administrativo: nombre, categoria o id.
+     * Mantiene el mismo ranking 50/50 y resuelve filtro y limite en la base. */
+    default List<Integer> findIdsOperativasParaAdmin(String termino, Pageable pageable) {
+        String filtro = termino == null || termino.isBlank() ? null : termino.trim();
+        return findIdsOperativasAdminFiltrado(
+                filtro != null, normalizarBusqueda(filtro), filtro, pageable);
+    }
+
+    @Query(value = """
+            WITH filtradas AS (
+                SELECT s.id
+                FROM sucursales s
+                WHERE s.activo = true
+                  AND (:filtrarTermino = false
+                       OR POSITION(:terminoNormalizado
+                                   IN REPLACE(LOWER(s.nombre), ' ', '')) > 0
+                       OR CAST(s.id AS VARCHAR) = :terminoOriginal
+                       OR EXISTS (
+                           SELECT 1 FROM categorias c
+                           WHERE c.id = s.categoria_id
+                             AND POSITION(:terminoNormalizado
+                                          IN LOWER(CAST(c.categoria AS VARCHAR))) > 0
+                       ))
+                  AND EXISTS (
+                      SELECT 1 FROM servicios sv
+                      WHERE sv.sucursal_id = s.id AND sv.activo = true
+                  )
+                  AND EXISTS (
+                      SELECT 1 FROM sucursal_empleados se
+                      JOIN usuarios u ON u.id = se.usuario_id
+                      WHERE se.sucursal_id = s.id AND u.activo = true
+                  )
+            ),
+            puntuaciones AS (
+                SELECT sv.sucursal_id AS sucursal_id,
+                       COUNT(r.id) AS cantidad,
+                       ROUND(CAST(AVG(r.puntuacion) AS NUMERIC), 1) AS promedio
+                FROM resenias r
+                JOIN turnos t ON t.id = r.turno_id
+                JOIN servicios sv ON sv.id = t.servicio_id
+                WHERE sv.sucursal_id IN (SELECT id FROM filtradas)
+                GROUP BY sv.sucursal_id
+            ),
+            maxima AS (
+                SELECT COALESCE(MAX(cantidad), 0) AS max_cantidad FROM puntuaciones
+            )
+            SELECT f.id
+            FROM filtradas f
+            LEFT JOIN puntuaciones p ON p.sucursal_id = f.id
+            CROSS JOIN maxima m
+            ORDER BY
+                (0.5 * CASE WHEN COALESCE(p.cantidad, 0) > 0
+                            THEN (COALESCE(p.promedio, 1) - 1) / 4.0
+                            ELSE 0 END
+                 + 0.5 * CASE WHEN m.max_cantidad > 0
+                            THEN COALESCE(p.cantidad, 0)
+                                 / CAST(m.max_cantidad AS DOUBLE PRECISION)
+                            ELSE 0 END) DESC,
+                CASE WHEN COALESCE(p.cantidad, 0) > 0
+                     THEN COALESCE(p.promedio, 1) ELSE 0 END DESC,
+                COALESCE(p.cantidad, 0) DESC,
+                f.id ASC
+            """, nativeQuery = true)
+    List<Integer> findIdsOperativasAdminFiltrado(
+            @Param("filtrarTermino") boolean filtrarTermino,
+            @Param("terminoNormalizado") String terminoNormalizado,
+            @Param("terminoOriginal") String terminoOriginal,
+            Pageable pageable);
+
+    /** Total con el mismo filtro libre que la consulta de contenido. */
+    default long contarOperativasParaAdmin(String termino) {
+        String filtro = termino == null || termino.isBlank() ? null : termino.trim();
+        return contarOperativasAdminFiltrado(
+                filtro != null, normalizarBusqueda(filtro), filtro);
+    }
+
+    @Query("""
+            SELECT COUNT(s) FROM Sucursal s
+            WHERE s.activo = true
+              AND (:filtrarTermino = false
+                   OR LOCATE(:terminoNormalizado,
+                             REPLACE(LOWER(s.nombre), ' ', '')) > 0
+                   OR STR(s.id) = :terminoOriginal
+                   OR LOCATE(:terminoNormalizado,
+                             LOWER(CAST(s.categoria.categoria AS string))) > 0)
+              AND EXISTS (
+                  SELECT 1 FROM Servicio sv
+                  WHERE sv.sucursal = s AND sv.activo = true
+              )
+              AND EXISTS (
+                  SELECT 1 FROM s.empleados e WHERE e.activo = true
+              )
+            """)
+    long contarOperativasAdminFiltrado(
+            @Param("filtrarTermino") boolean filtrarTermino,
+            @Param("terminoNormalizado") String terminoNormalizado,
+            @Param("terminoOriginal") String terminoOriginal);
+
     /** Carga en una sola query las entidades de la pagina con sus relaciones
      * usadas por SucursalMiniDTO. El orden lo aplica el servicio segun la lista
      * de ids devuelta por la consulta ordenada. */

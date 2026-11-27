@@ -53,6 +53,22 @@ public interface SolicitudEmpleadorRepository extends JpaRepository<SolicitudEmp
             @Param("userEmail") String userEmail,
             Pageable pageable);
 
+    /// Listado propio paginado: el conteo usa el mismo filtro por usuario.
+    @Query(value = """
+                SELECT new com.gg.turnlook.features.solicitud.empleador.dto.SolicitudEmpleadorMiniDTO(
+                    s.id, s.usuario.nombre, s.usuario.apellido, s.fechaSolicitud, s.estado)
+                FROM SolicitudEmpleador s
+                WHERE s.usuario.email = :userEmail
+                ORDER BY s.fechaSolicitud DESC, s.id DESC
+            """,
+            countQuery = """
+                SELECT COUNT(s) FROM SolicitudEmpleador s
+                WHERE s.usuario.email = :userEmail
+            """)
+    Page<SolicitudEmpleadorMiniDTO> findPageByUsuarioEmail(
+            @Param("userEmail") String userEmail,
+            Pageable pageable);
+
 
     /// Detalle en una sola consulta: usuario y ubicaciones se cargan con JOIN,
     /// sin una consulta por ubicacion (evita N+1).
