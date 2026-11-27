@@ -104,12 +104,33 @@ class ReseniaEmpleadoHistoricoTest {
     }
 
     @Test
-    void aunqueDesaparezcaLaRelacionConElEmpleadoSeConservaElHistorico() {
+    void aunqueDesaparezcaLaRelacionDelTurnoLaVigenciaSeCalculaPorElIdDelSnapshot() {
         Fixture fixture = crearFixture(true);
 
         Turno turno = turnoRepo.findById(fixture.turnoId()).orElseThrow();
         turno.setEmpleado(null);
         turnoRepo.saveAndFlush(turno);
+        refrescar();
+
+        ReseniaResponseDTO dto = unicaResenia(fixture.sucursalId());
+        assertEquals("Ana Pérez", dto.getEmpleadoNombre() + " " + dto.getEmpleadoApellido());
+        assertTrue(dto.getEmpleadoPerteneceASucursal());
+        assertEquals(5, dto.getPuntuacion());
+    }
+
+    @Test
+    void eliminarLaCuentaConservaElNombreYMarcaQueYaNoPertenece() {
+        Fixture fixture = crearFixture(true);
+
+        Turno turno = turnoRepo.findById(fixture.turnoId()).orElseThrow();
+        turno.setEmpleado(null);
+        turnoRepo.saveAndFlush(turno);
+        Sucursal sucursal = sucursalRepo.findById(fixture.sucursalId()).orElseThrow();
+        Usuario empleado = usuarioRepo.findById(fixture.empleadoId()).orElseThrow();
+        sucursal.getEmpleados().remove(empleado);
+        sucursalRepo.saveAndFlush(sucursal);
+        usuarioRepo.delete(empleado);
+        usuarioRepo.flush();
         refrescar();
 
         ReseniaResponseDTO dto = unicaResenia(fixture.sucursalId());
