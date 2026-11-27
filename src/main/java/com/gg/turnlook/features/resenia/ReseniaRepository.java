@@ -2,6 +2,7 @@ package com.gg.turnlook.features.resenia;
 
 import com.gg.turnlook.features.resenia.dto.ReseniaResponseDTO;
 import java.util.List;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -33,6 +34,22 @@ public interface ReseniaRepository extends JpaRepository<Resenia, Integer> {
                 ORDER BY r.fechaResenia DESC, r.id DESC
             """)
     List<ReseniaResponseDTO> findReseniasPorSucursal(
+            @Param("sucursalId") Integer sucursalId,
+            Pageable pageable);
+
+    /** Listado completo: OFFSET/LIMIT y total se resuelven en la base. */
+    @Query(value = """
+                SELECT new com.gg.turnlook.features.resenia.dto.ReseniaResponseDTO(
+                    r.puntuacion, r.comentario, r.fechaResenia)
+                FROM Resenia r
+                WHERE r.turno.servicio.sucursal.id = :sucursalId
+                ORDER BY r.fechaResenia DESC, r.id DESC
+            """,
+            countQuery = """
+                SELECT COUNT(r) FROM Resenia r
+                WHERE r.turno.servicio.sucursal.id = :sucursalId
+            """)
+    Page<ReseniaResponseDTO> findPageReseniasPorSucursal(
             @Param("sucursalId") Integer sucursalId,
             Pageable pageable);
 

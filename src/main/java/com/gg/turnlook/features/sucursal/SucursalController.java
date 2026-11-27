@@ -155,6 +155,17 @@ public class SucursalController {
                 descubrimientoService.listarPaginado(nombre, categoria, page, size));
     }
 
+    /** Listado administrativo: filtro por nombre/categoria/id en la base. */
+    @PreAuthorize("hasRole('ADMINISTRADOR')")
+    @GetMapping("/listar/paginado/admin")
+    public ResponseEntity<?> listarSucursalesPaginadasAdmin(
+            @RequestParam(required = false) String q,
+            @RequestParam(name = "page", defaultValue = "0") String page) {
+
+        return ResponseEntity.ok().body(
+                descubrimientoService.listarPaginadoAdmin(q, page));
+    }
+
     /** Secciones del Home. Las dos secciones personales llegan vacias para
      * usuarios anonimos o sin historial. */
     @GetMapping("/recomendaciones")
@@ -265,6 +276,17 @@ public class SucursalController {
         // Valida que la sucursal exista y este activa para operaciones/vistas normales.
         sucursalService.listarSucursalPorId(sucursalId);
         return ResponseEntity.ok().body(reseniaService.getReseniasPorSucursal(sucursalId));
+    }
+
+    /** Listado completo de reseñas: 10 por pagina, con metadatos. */
+    @GetMapping("/{sucursalId}/resenias/paginado")
+    public ResponseEntity<?> verReseniasPaginadas(
+            @PathVariable("sucursalId") Integer sucursalId,
+            @RequestParam(name = "page", defaultValue = "0") String page) {
+
+        sucursalService.listarSucursalPorId(sucursalId);
+        return ResponseEntity.ok().body(
+                reseniaService.listarReseniasPaginadas(sucursalId, page));
     }
 
 

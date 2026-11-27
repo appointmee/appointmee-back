@@ -1,9 +1,12 @@
 package com.gg.turnlook.features.resenia;
 
+import com.gg.turnlook.common.dto.PaginaDTO;
+import com.gg.turnlook.common.util.PaginacionUtil;
 import com.gg.turnlook.features.resenia.dto.ReseniaCrearDTO;
 import com.gg.turnlook.features.resenia.dto.ReseniaResponseDTO;
 import com.gg.turnlook.features.turno.Turno;
 import java.util.List;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 
@@ -163,9 +166,8 @@ public class ReseniaService {
     }
 
 
-    // Limite del historial publico de resenias. Se mantiene el retorno List
-    // para no cambiar el contrato de la API.
-    private static final int LIMITE_RESENIAS_SUCURSAL = 200;
+    // El detalle de la sucursal solo necesita las ultimas 5 resenias.
+    private static final int LIMITE_RESENIAS_DETALLE = 5;
 
 
     public List<ReseniaResponseDTO> getReseniasPorSucursal(Integer sucursalId) {
@@ -178,7 +180,23 @@ public class ReseniaService {
         //                 r.getFechaResenia()))
         //         .toList();
         return reseniaRepo.findReseniasPorSucursal(sucursalId,
-                PageRequest.of(0, LIMITE_RESENIAS_SUCURSAL));
+                PageRequest.of(0, LIMITE_RESENIAS_DETALLE));
+    }
+
+    /** Historial completo: 10 resenias por pagina, orden y total en la base. */
+    public PaginaDTO<ReseniaResponseDTO> listarReseniasPaginadas(
+            Integer sucursalId, String pagina) {
+
+        Page<ReseniaResponseDTO> resultado = reseniaRepo.findPageReseniasPorSucursal(
+                sucursalId,
+                PageRequest.of(PaginacionUtil.pagina(pagina), PaginacionUtil.TAMANO_PAGINA));
+
+        return new PaginaDTO<>(
+                resultado.getContent(),
+                resultado.getTotalElements(),
+                resultado.getTotalPages(),
+                resultado.getNumber(),
+                resultado.getSize());
     }
 
 

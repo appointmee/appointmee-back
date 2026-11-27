@@ -109,6 +109,7 @@ public class SecurityConfig {
                                 "/sucursales/*",
                                 "/sucursales/*/elegir-empleado",
                                 "/sucursales/*/resenias",
+                                "/sucursales/*/resenias/paginado",
                                 "/servicios/listar/sucursal/*",
                                 "/servicios/*",
                                 "/turnos/disponibilidad/empleado/*/servicio/*")

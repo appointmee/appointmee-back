@@ -110,6 +110,19 @@ public class UsuarioController {
                 nombre, apellido, activo));
     }
 
+    /** Paginacion real: 10 usuarios por pagina, con los mismos filtros. */
+    @PreAuthorize("hasRole('ADMINISTRADOR')")
+    @GetMapping("/listar/paginado")
+    public ResponseEntity<?> listarUsuariosPaginados(
+            @RequestParam(required = false) String nombre,
+            @RequestParam(required = false) String apellido,
+            @RequestParam(required = false) Boolean activo,
+            @RequestParam(name = "page", defaultValue = "0") String page) {
+
+        return ResponseEntity.ok().body(usuarioService.listarUsuariosPaginados(
+                nombre, apellido, activo, page));
+    }
+
 
     @GetMapping("/{userId}")
     public ResponseEntity<?> filtrarUsuariosId(@PathVariable("userId") Integer userId,
