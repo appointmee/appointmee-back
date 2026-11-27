@@ -42,18 +42,23 @@ public class MercadoPagoSandboxAdapter implements PaymentGateway {
                     response.id(),
                     response.initPoint(),
                     request.externalReference(),
-                    EstadoPagoProveedor.desdeProveedor(response.status(), null));
+                    EstadoPagoProveedor.desdeProveedor(response.status(), null).aPaymentState());
         } catch (RuntimeException e) {
             throw new PaymentProviderException("No se pudo crear el cobro en Mercado Pago", e);
         }
     }
 
     @Override
-    public EstadoPagoProveedor consultarEstado(String proveedorReferencia) {
+    public PagoProveedor consultarPago(String proveedorReferencia) {
         try {
             PagoApiResponse response = api.obtenerPago(
                     proveedorReferencia, properties.getAccessToken());
-            return EstadoPagoProveedor.desdeProveedor(response.status(), response.statusDetail());
+            return new PagoProveedor(
+                    response.id(),
+                    response.externalReference(),
+                    EstadoPagoProveedor
+                            .desdeProveedor(response.status(), response.statusDetail())
+                            .aPaymentState());
         } catch (RuntimeException e) {
             throw new PaymentProviderException("No se pudo consultar el cobro en Mercado Pago", e);
         }

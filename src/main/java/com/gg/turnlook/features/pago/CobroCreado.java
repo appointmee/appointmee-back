@@ -5,5 +5,5 @@ public record CobroCreado(
         String proveedorReferencia,
         String initPoint,
         String externalReference,
-        EstadoPagoProveedor estado) {
+        PaymentState estado) {
 }
