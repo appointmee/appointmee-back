@@ -157,6 +157,64 @@ class PagosCentralizadosPersistenciaTest {
                 .findBySucursalIdAndProviderCode(sucursal.getId(), "MERCADOPAGO").isPresent());
     }
 
+    @Test
+    void derivaLaSucursalDesdeElServicioDelTurno() {
+        Pago pago = new Pago();
+        pago.setTurno(turno);
+        pago.setExternalReference("ref-derivada");
+        pago.setAmount(new BigDecimal("1500.00"));
+        pago.setIdempotencyKey("idem-derivada");
+
+        pagoRepository.saveAndFlush(pago);
+        entityManager.clear();
+
+        Pago guardado = pagoRepository.findById(pago.getId()).orElseThrow();
+        assertEquals(sucursal.getId(), guardado.getSucursal().getId());
+    }
+
+    @Test
+    void cambiarEstadoRegistraAsientoAppendOnlyYEncadenaElHash() {
+        Pago pago = pagoRepository.saveAndFlush(nuevoPago("ref-ledger-servicio", "idem-ledger-servicio"));
+        FinancialOperationService servicio = new FinancialOperationService(operationRepository);
+
+        FinancialOperation operacion = servicio.cambiarEstado(pago, PaymentState.CAPTURED,
+                SettlementState.HELD_POLICY, FinancialOperationType.APPROVED,
+                "ORD-123", "sistema");
+        entityManager.flush();
+        Long asientoId = operacion.getId();
+        assertNotNull(asientoId);
+        assertEquals("GENESIS", operacion.getPrevHash());
+
+        FinancialOperation segundo = servicio.registrar(pago, FinancialOperationType.DEBIT_REGISTERED,
+                PaymentState.CAPTURED + "/HELD_POLICY", PaymentState.CAPTURED + "/HELD_POLICY",
+                "ORD-123", "sistema");
+        entityManager.flush();
+        entityManager.clear();
+
+        Pago actualizado = pagoRepository.findById(pago.getId()).orElseThrow();
+        assertEquals(PaymentState.CAPTURED, actualizado.getPaymentState());
+        assertEquals(SettlementState.HELD_POLICY, actualizado.getSettlementState());
+        assertNotNull(actualizado.getCapturedAt());
+
+        var asientos = operationRepository.findAllByPagoIdOrderByIdAsc(pago.getId());
+        assertEquals(2, asientos.size());
+        assertEquals(operacion.getHash(), asientos.get(1).getPrevHash());
+        assertEquals(segundo.getHash(), asientos.get(1).getHash());
+
+        FinancialOperation inmutable = operationRepository.findById(asientoId).orElseThrow();
+        inmutable.setAmount(new BigDecimal("0.01"));
+        entityManager.flush();
+        entityManager.clear();
+        assertEquals(new BigDecimal("1500.00"),
+                operationRepository.findById(asientoId).orElseThrow().getAmount());
+
+        RuntimeException bloqueo = assertThrows(RuntimeException.class,
+                () -> operationRepository.deleteById(asientoId));
+        assertTrue(bloqueo.getMessage().contains("append-only")
+                || (bloqueo.getCause() != null
+                    && bloqueo.getCause().getMessage().contains("append-only")));
+    }
+
     private Pago nuevoPago(String referencia, String idempotencia) {
         Pago pago = new Pago();
         pago.setTurno(turno);
