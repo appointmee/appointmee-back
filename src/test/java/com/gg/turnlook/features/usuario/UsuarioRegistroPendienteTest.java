@@ -22,7 +22,7 @@ class UsuarioRegistroPendienteTest {
         when(repo.existsByEmail("ana@example.com")).thenReturn(true);
         when(repo.findByEmailAndActivoTrue("ana@example.com")).thenReturn(Optional.of(usuario));
         when(encoder.matches("Clave123!", "hash")).thenReturn(true);
-        UsuarioService service = new UsuarioService(repo, null, null, null, encoder, null, null, null, null);
+        UsuarioService service = new UsuarioService(repo, null, null, null, encoder, null, null, null, null, null);
 
         RegistroPendienteVerificacionException error = assertThrows(
                 RegistroPendienteVerificacionException.class, () -> service.crearUsuario(datos()));
@@ -39,7 +39,7 @@ class UsuarioRegistroPendienteTest {
         PasswordEncoder encoder = mock(PasswordEncoder.class);
         when(repo.existsByEmail("ana@example.com")).thenReturn(true);
         when(repo.findByEmailAndActivoTrue("ana@example.com")).thenReturn(Optional.of(new Usuario()));
-        UsuarioService service = new UsuarioService(repo, null, null, null, encoder, null, null, null, null);
+        UsuarioService service = new UsuarioService(repo, null, null, null, encoder, null, null, null, null, null);
 
         ConflictException error = assertThrows(ConflictException.class, () -> service.crearUsuario(datos()));
         assertEquals(ConflictException.class, error.getClass());
@@ -54,7 +54,7 @@ class UsuarioRegistroPendienteTest {
         usuario.setEmailVerificado(true);
         when(repo.existsByEmail("ana@example.com")).thenReturn(true);
         when(repo.findByEmailAndActivoTrue("ana@example.com")).thenReturn(Optional.of(usuario));
-        UsuarioService service = new UsuarioService(repo, null, null, null, encoder, null, null, null, null);
+        UsuarioService service = new UsuarioService(repo, null, null, null, encoder, null, null, null, null, null);
 
         ConflictException error = assertThrows(ConflictException.class, () -> service.crearUsuario(datos()));
         assertEquals(ConflictException.class, error.getClass());
