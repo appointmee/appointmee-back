@@ -22,6 +22,13 @@ public class ReseniaCrearDTO {
             message = "El comentario debe estar entre los 8 y 400 caracteres o no incluir uno")
     private String comentario;
 
+    /**
+     * Opcional: cuando es true se copia el empleado del turno a la resenia.
+     * Por defecto es false para no alterar las resenas anteriores ni los payloads
+     * que todavia no envian el campo.
+     */
+    private boolean incluirEmpleado = false;
+
 
 }
 
