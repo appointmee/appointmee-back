@@ -17,6 +17,7 @@ import com.gg.turnlook.features.imagen.ImagenRepository;
 import com.gg.turnlook.features.imagen.ImagenService;
 import com.gg.turnlook.features.resenia.ReseniaService;
 import com.gg.turnlook.features.solicitud.empleado.GestionEmpleadoService;
+import com.gg.turnlook.features.turno.TurnoBajaService;
 import com.gg.turnlook.features.sucursal.categoria.Categoria;
 import com.gg.turnlook.features.sucursal.categoria.CategoriaRepository;
 import com.gg.turnlook.features.sucursal.categoria.ECategoria;
@@ -58,7 +59,8 @@ class SucursalPlaceIdLiberacionTest {
         gestionEmpleadoService = mock(GestionEmpleadoService.class);
         rolService = mock(RolService.class);
         service = new SucursalService(sucRepo, catRepo, imagenRepo, usuarioService,
-                imagenService, reseniaService, gestionEmpleadoService, rolService);
+                imagenService, reseniaService, gestionEmpleadoService, rolService,
+                mock(TurnoBajaService.class));
     }
 
     @Test

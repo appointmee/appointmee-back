@@ -20,6 +20,7 @@ import com.gg.turnlook.features.turno.dto.TurnoCrearDTO;
 import com.gg.turnlook.features.turno.dto.TurnoDisponibilidadDTO;
 import com.gg.turnlook.features.turno.dto.TurnoMiniDTO;
 import com.gg.turnlook.features.turno.dto.TurnoResponseDTO;
+import com.gg.turnlook.features.turno.dto.SucursalTurnoResponseDTO;
 import com.gg.turnlook.features.usuario.FotoPerfilUsuario;
 import com.gg.turnlook.features.usuario.Usuario;
 import com.gg.turnlook.features.usuario.UsuarioService;
@@ -345,12 +346,17 @@ public class TurnoService {
 
         Turno t = listarTurnoPorId(turnoId);
 
-        if (!sucursalService.enSucursal(userEmail, t.getServicio().getSucursal())) {
+        Sucursal sucursal = t.getServicio().getSucursal();
+        boolean esEmpleadoAsignado = t.getEmpleado().getEmail().equals(userEmail);
+
+        // El empleado asignado conserva el acceso a su turno aunque ya no
+        // pertenezca a la sucursal: el detalle debe poder informar ese escenario.
+        if (!esEmpleadoAsignado && !sucursalService.enSucursal(userEmail, sucursal)) {
             throw new ForbiddenException("No tenes permisos");
         }
 
-        if (!sucursalService.esEmpleadorAca(t.getServicio().getSucursal(), userEmail)
-                && !t.getEmpleado().getEmail().equals(userEmail)) {
+        if (!sucursalService.esEmpleadorAca(sucursal, userEmail)
+                && !esEmpleadoAsignado) {
             throw new ForbiddenException("Este turno no esta asignado a vos");
         }
 
@@ -377,7 +383,10 @@ public class TurnoService {
 
         return new TurnoResponseDTO(
                 t.getId(), t.getFechaReserva(), t.getFechaHora(), t.getEstado(),
-                cliente, empleado, servicio, resenia);
+                cliente, empleado, servicio, resenia,
+                datosSucursal(sucursal), e.isActivo(),
+                sucursalService.empleadoPertenece(sucursal.getId(), e.getId()),
+                sucursal.isActivo());
     }
 
 
@@ -416,8 +425,24 @@ public class TurnoService {
                     r.getPuntuacion(), r.getComentario(), r.getFechaResenia());
         }
 
+        Sucursal sucursal = s.getSucursal();
+
         return new TurnoClienteResponseDTO(t.getFechaReserva(), t.getFechaHora(), t.getEstado(),
-                emp, serv, cl, resenia);
+                emp, serv, cl, resenia,
+                datosSucursal(sucursal), e.isActivo(),
+                sucursalService.empleadoPertenece(sucursal.getId(), e.getId()),
+                sucursal.isActivo());
+    }
+
+    /** Datos históricos de la sucursal del turno, sin depender de que siga activa. */
+    private SucursalTurnoResponseDTO datosSucursal(Sucursal sucursal) {
+        if (sucursal == null) return null;
+        return new SucursalTurnoResponseDTO(
+                sucursal.getId(), sucursal.getNombre(), sucursal.getDireccion(),
+                sucursal.getTelefono(),
+                sucursal.getCategoria() == null ? null
+                        : sucursal.getCategoria().getCategoria().name(),
+                FotoPerfilUsuario.resolver(sucursal.getFotoPerfil()));
     }
 
 

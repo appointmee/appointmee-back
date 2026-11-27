@@ -13,6 +13,7 @@ import com.gg.turnlook.features.resenia.ReseniaService;
 import com.gg.turnlook.features.resenia.ReseniaService.ResumenPuntuacion;
 import com.gg.turnlook.features.sucursal.Sucursal;
 import com.gg.turnlook.features.sucursal.dto.SucursalMiniDTO;
+import com.gg.turnlook.features.turno.TurnoBajaService;
 import com.gg.turnlook.features.usuario.FotoPerfilUsuario;
 import com.gg.turnlook.features.usuario.dto.UsuarioCrearDTO;
 import com.gg.turnlook.features.usuario.dto.UsuarioEmailDTO;
@@ -54,9 +55,10 @@ public class UsuarioService {
     private final com.gg.turnlook.auth.password.PasswordResetTokenRepository resetTokens;
     private final com.gg.turnlook.auth.BloqueoUsuario bloqueo;
     private final com.gg.turnlook.features.verificacion.VerificacionRepository verificaciones;
+    private final TurnoBajaService turnoBajaService;
 
 
-    public UsuarioService(UsuarioRepository usRepo, RolService rolService, ImagenService imagenService, ReseniaService reseniaService, PasswordEncoder passEncoder, com.gg.turnlook.auth.refresh.RefreshTokenRepository refreshTokens, com.gg.turnlook.auth.password.PasswordResetTokenRepository resetTokens, com.gg.turnlook.auth.BloqueoUsuario bloqueo, com.gg.turnlook.features.verificacion.VerificacionRepository verificaciones) {
+    public UsuarioService(UsuarioRepository usRepo, RolService rolService, ImagenService imagenService, ReseniaService reseniaService, PasswordEncoder passEncoder, com.gg.turnlook.auth.refresh.RefreshTokenRepository refreshTokens, com.gg.turnlook.auth.password.PasswordResetTokenRepository resetTokens, com.gg.turnlook.auth.BloqueoUsuario bloqueo, com.gg.turnlook.features.verificacion.VerificacionRepository verificaciones, TurnoBajaService turnoBajaService) {
         this.usRepo = usRepo;
         this.rolService = rolService;
         this.imagenService = imagenService;
@@ -66,6 +68,7 @@ public class UsuarioService {
         this.resetTokens = resetTokens;
         this.bloqueo = bloqueo;
         this.verificaciones = verificaciones;
+        this.turnoBajaService = turnoBajaService;
 
     }
 
@@ -135,6 +138,7 @@ public class UsuarioService {
         u.setActivo(false);
 
         usRepo.save(u);
+        turnoBajaService.cancelarPorBajaEmpleado(u.getId());
     }
 
 
@@ -158,6 +162,7 @@ public class UsuarioService {
         usuario.setActivo(false);
 
         usRepo.save(usuario);
+        turnoBajaService.cancelarPorBajaEmpleado(usuario.getId());
     }
 
 

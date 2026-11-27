@@ -27,4 +27,13 @@ public class TurnoResponseDTO {
     private ServicioTurnoResponseDTO servicio;
     private ReseniaResponseDTO resenia;
 
+    /** Datos históricos de la sucursal, disponibles aunque esté dada de baja. */
+    private SucursalTurnoResponseDTO sucursal;
+    /** Estado actual del empleado asignado, para distinguir una baja lógica. */
+    private boolean empleadoActivo;
+    /** Pertenencia actual del empleado a la sucursal del turno. */
+    private boolean empleadoPerteneceASucursal;
+    /** Estado actual de la sucursal del turno. */
+    private boolean sucursalActiva;
+
 }

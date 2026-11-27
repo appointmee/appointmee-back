@@ -10,6 +10,7 @@ import com.gg.turnlook.auth.password.PasswordResetTokenRepository;
 import com.gg.turnlook.auth.refresh.RefreshTokenRepository;
 import com.gg.turnlook.features.imagen.ImagenService;
 import com.gg.turnlook.features.resenia.ReseniaService;
+import com.gg.turnlook.features.turno.TurnoBajaService;
 import com.gg.turnlook.features.usuario.rol.RolService;
 import com.gg.turnlook.features.verificacion.VerificacionRepository;
 import org.junit.jupiter.api.Test;
@@ -29,7 +30,8 @@ class UsuarioServiceActivacionTest {
                 mock(RefreshTokenRepository.class),
                 mock(PasswordResetTokenRepository.class),
                 bloqueo,
-                mock(VerificacionRepository.class));
+                mock(VerificacionRepository.class),
+                mock(TurnoBajaService.class));
         Usuario usuario = new Usuario("Mario", "Paz", "mario@example.com", "hash");
         usuario.setId(72);
         usuario.setActivo(false);

@@ -309,6 +309,21 @@ public interface SucursalRepository extends JpaRepository<Sucursal, Integer> {
             @Param("sucursalId") Integer sucursalId,
             @Param("email") String email);
 
+    /**
+     * Pertenencia del empleado asignado a un turno. Consulta la relación actual
+     * (sucursal_empleados) sin filtrar por activo: la baja lógica conserva la
+     * fila y el detalle del turno debe poder distinguir ese escenario del de
+     * una desvinculación.
+     */
+    @Query("""
+                SELECT CASE WHEN COUNT(e) > 0 THEN true ELSE false END
+                FROM Sucursal s JOIN s.empleados e
+                WHERE s.id = :sucursalId AND e.id = :empleadoId
+            """)
+    boolean existeEmpleadoEnSucursal(
+            @Param("sucursalId") Integer sucursalId,
+            @Param("empleadoId") Integer empleadoId);
+
 
 }
 
