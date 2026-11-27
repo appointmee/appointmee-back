@@ -5,20 +5,25 @@ import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import java.math.BigDecimal;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 class MockPayoutAdapterTest {
 
     private MockPayoutAdapter adapter;
+    private InMemoryPayoutStore store;
 
     @BeforeEach
     void setUp() {
-        adapter = new MockPayoutAdapter();
+        store = new InMemoryPayoutStore();
+        adapter = new MockPayoutAdapter(store);
     }
 
     @Test
-    void pagaYDevuelveEstadoPagado() {
+    void pagaYPersisteElResultado() {
         PayoutResult resultado = adapter.pay(new PayoutCommand(
                 new BigDecimal("1500.00"), 7, "pago-1", "idem-1"));
 
@@ -26,6 +31,8 @@ class MockPayoutAdapterTest {
         assertEquals("pago-1", resultado.reference());
         assertNotNull(resultado.providerReference());
         assertEquals(PayoutStatus.PAID, adapter.getStatus("pago-1"));
+        assertEquals(PayoutStatus.PAID, store.findByIdempotencyKey("idem-1").orElseThrow().status());
+        assertEquals(7, store.findByIdempotencyKey("idem-1").orElseThrow().sucursalId());
     }
 
     @Test
@@ -38,6 +45,7 @@ class MockPayoutAdapterTest {
 
         assertEquals(primera, segunda);
         assertEquals(primera.providerReference(), segunda.providerReference());
+        assertEquals(1, store.tamanio());
     }
 
     @Test
@@ -48,10 +56,11 @@ class MockPayoutAdapterTest {
                 new BigDecimal("100.00"), 7, "pago-b", "idem-b"));
 
         assertNotEquals(primera.providerReference(), segunda.providerReference());
+        assertEquals(2, store.tamanio());
     }
 
     @Test
-    void reembolsaUnaOrdenExistenteYRespetaIdempotencia() {
+    void reembolsaUnaOrdenPersistidaYRespetaIdempotencia() {
         adapter.pay(new PayoutCommand(new BigDecimal("1500.00"), 7, "pago-3", "idem-pago-3"));
 
         RefundCommand command = new RefundCommand("pago-3", new BigDecimal("1500.00"),
@@ -62,6 +71,7 @@ class MockPayoutAdapterTest {
         assertEquals(PayoutStatus.REFUNDED, primera.status());
         assertEquals(primera, segunda);
         assertEquals(PayoutStatus.REFUNDED, adapter.getStatus("pago-3"));
+        assertEquals(2, store.tamanio());
     }
 
     @Test
@@ -70,10 +80,39 @@ class MockPayoutAdapterTest {
                 new BigDecimal("50.00"), "Error", "idem-refund-fail"));
 
         assertEquals(PayoutStatus.FAILED, resultado.status());
+        assertEquals(0, store.tamanio());
     }
 
     @Test
     void estadoDeReferenciaDesconocidaEsPendiente() {
         assertEquals(PayoutStatus.PENDING, adapter.getStatus("no-existe"));
+    }
+
+    /** Store en memoria para tests unitarios; en producción usa JpaPayoutStore. */
+    private static class InMemoryPayoutStore implements PayoutStore {
+
+        private final Map<String, PayoutRecord> porIdempotencia = new LinkedHashMap<>();
+        private final Map<String, PayoutRecord> porReferencia = new LinkedHashMap<>();
+
+        @Override
+        public Optional<PayoutRecord> findByIdempotencyKey(String key) {
+            return Optional.ofNullable(porIdempotencia.get(key));
+        }
+
+        @Override
+        public Optional<PayoutRecord> findByReference(String reference) {
+            return Optional.ofNullable(porReferencia.get(reference));
+        }
+
+        @Override
+        public PayoutRecord save(PayoutRecord record) {
+            porIdempotencia.put(record.idempotencyKey(), record);
+            porReferencia.put(record.reference(), record);
+            return record;
+        }
+
+        int tamanio() {
+            return porIdempotencia.size();
+        }
     }
 }
