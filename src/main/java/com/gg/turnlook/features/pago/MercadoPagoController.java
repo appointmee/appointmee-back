@@ -1,5 +1,7 @@
 package com.gg.turnlook.features.pago;
 
+import com.gg.turnlook.features.payment.PaymentProviderException;
+
 import java.util.Map;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;

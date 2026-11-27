@@ -1,7 +1,8 @@
 package com.gg.turnlook.features.pago.dto;
 
-import com.gg.turnlook.features.pago.PaymentState;
-import com.gg.turnlook.features.pago.SettlementState;
+import com.gg.turnlook.features.payment.PaymentState;
+import com.gg.turnlook.features.payment.SettlementState;
+
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 

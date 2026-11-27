@@ -1,5 +1,10 @@
 package com.gg.turnlook.features.pago;
 
+import com.gg.turnlook.features.payment.PaymentState;
+import com.gg.turnlook.features.payment.SettlementState;
+import com.gg.turnlook.features.sucursal.Sucursal;
+import com.gg.turnlook.features.turno.Turno;
+
 import com.gg.turnlook.features.sucursal.Sucursal;
 import com.gg.turnlook.features.turno.Turno;
 import jakarta.persistence.Column;

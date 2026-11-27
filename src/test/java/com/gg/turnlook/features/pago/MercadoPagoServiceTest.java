@@ -1,8 +1,16 @@
 package com.gg.turnlook.features.pago;
 
-import com.gg.turnlook.features.pago.comandos.CrearCobroCommand;
-import com.gg.turnlook.features.pago.records.CobroCreado;
-import com.gg.turnlook.features.pago.records.PagoProveedor;
+import com.gg.turnlook.features.payment.PaymentGateway;
+import com.gg.turnlook.features.payment.PaymentState;
+import com.gg.turnlook.features.payment.comandos.CrearCobroCommand;
+import com.gg.turnlook.features.payment.records.CobroCreado;
+import com.gg.turnlook.features.payment.records.PagoProveedor;
+import com.gg.turnlook.features.servicio.Servicio;
+import com.gg.turnlook.features.turno.EstadoTurno;
+import com.gg.turnlook.features.turno.Turno;
+import com.gg.turnlook.features.turno.TurnoService;
+import com.gg.turnlook.features.usuario.Usuario;
+
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;

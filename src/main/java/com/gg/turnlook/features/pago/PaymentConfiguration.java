@@ -1,6 +1,8 @@
 package com.gg.turnlook.features.pago;
 
 import com.gg.turnlook.features.sucursal.Sucursal;
+
+import com.gg.turnlook.features.sucursal.Sucursal;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
