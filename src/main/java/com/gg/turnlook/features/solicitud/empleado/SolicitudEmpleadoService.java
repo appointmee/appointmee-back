@@ -1,7 +1,10 @@
 package com.gg.turnlook.features.solicitud.empleado;
 
+import com.gg.turnlook.common.dto.PaginaDTO;
+import com.gg.turnlook.common.dto.VistaPreviaDTO;
 import com.gg.turnlook.common.exception.ConflictException;
 import com.gg.turnlook.common.exception.ForbiddenException;
+import com.gg.turnlook.common.util.PaginacionUtil;
 import com.gg.turnlook.common.exception.NotFoundException;
 import com.gg.turnlook.common.util.DiasSemanaUtil;
 import com.gg.turnlook.features.resenia.ReseniaService;
@@ -24,6 +27,7 @@ import com.gg.turnlook.features.usuario.rol.RolService;
 import jakarta.transaction.Transactional;
 import java.util.List;
 import java.util.Map;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 
@@ -35,9 +39,10 @@ import org.springframework.stereotype.Service;
 public class SolicitudEmpleadoService {
 
 
-    // Limite de los listados de solicitudes. Se mantiene el retorno List para
-    // no cambiar el contrato de la API.
-    private static final int LIMITE_SOLICITUDES = 500;
+    // El contenedor inicial trae solo las ultimas 5; el historial completo se
+    // navega en paginas de 10.
+    private static final int LIMITE_VISTA_PREVIA = 5;
+    private static final int LIMITE_SOLICITUDES_SUCURSAL = PaginacionUtil.TAMANO_PAGINA;
 
 
     private final SolicitudEmpleadoRepository solicitudEmpleadoRepo;
@@ -76,11 +81,11 @@ public class SolicitudEmpleadoService {
         //                 sol.getEmpleado().getApellido(), sol.getFechaSolicitud())
         //         ).toList();
         return solicitudEmpleadoRepo.findMiniBySucursalId(sucursal.getId(),
-                PageRequest.of(0, LIMITE_SOLICITUDES));
+                PageRequest.of(0, LIMITE_SOLICITUDES_SUCURSAL));
     }
 
 
-    public List<SolicitudEmpleadoMiniPropiaDTO> listarSolicitudesRecibidas(
+    public VistaPreviaDTO<SolicitudEmpleadoMiniPropiaDTO> listarSolicitudesRecibidas(
             String userEmail) {
 
         // Consulta anterior a la optimización. Reemplazada por findMiniByEmpleadoEmail.
@@ -89,8 +94,30 @@ public class SolicitudEmpleadoService {
         //         .map(sol -> new SolicitudEmpleadoMiniPropiaDTO(
         //                 sol.getId(), sol.getSucursal().getNombre(), sol.getFechaSolicitud())
         //         ).toList();
-        return solicitudEmpleadoRepo.findMiniByEmpleadoEmail(userEmail,
-                PageRequest.of(0, LIMITE_SOLICITUDES));
+        Page<SolicitudEmpleadoMiniPropiaDTO> resultado = solicitudEmpleadoRepo
+                .findPageByEmpleadoEmail(userEmail, PageRequest.of(0, LIMITE_VISTA_PREVIA));
+
+        return new VistaPreviaDTO<>(
+                resultado.getContent(),
+                resultado.getTotalElements(),
+                resultado.getTotalElements() > LIMITE_VISTA_PREVIA);
+    }
+
+    /** Historial completo de solicitudes recibidas: 10 por pagina. */
+    public PaginaDTO<SolicitudEmpleadoMiniPropiaDTO> listarSolicitudesRecibidasPaginadas(
+            String userEmail, String pagina) {
+
+        Page<SolicitudEmpleadoMiniPropiaDTO> resultado = solicitudEmpleadoRepo
+                .findPageByEmpleadoEmail(userEmail,
+                        PageRequest.of(PaginacionUtil.pagina(pagina),
+                                PaginacionUtil.TAMANO_PAGINA));
+
+        return new PaginaDTO<>(
+                resultado.getContent(),
+                resultado.getTotalElements(),
+                resultado.getTotalPages(),
+                resultado.getNumber(),
+                resultado.getSize());
     }
 
 

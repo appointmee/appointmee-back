@@ -83,6 +83,19 @@ public class TurnoController {
                 sucursalId, empleadorEmail, estadoTurno));
     }
 
+    /** Historial paginado de una sucursal: 10 turnos por pagina. */
+    @PreAuthorize("hasRole('EMPLEADOR')")
+    @GetMapping("/de-sucursal/{sucursalId}/paginado")
+    public ResponseEntity<?> listarTurnosPorSucursalPaginados(
+            @PathVariable("sucursalId") Integer sucursalId,
+            @RequestParam EstadoTurno estadoTurno,
+            @RequestParam(name = "page", defaultValue = "0") String page,
+            @AuthenticationPrincipal String empleadorEmail) {
+
+        return ResponseEntity.ok().body(turnoService.listarTurnosPorSucursalPaginado(
+                sucursalId, empleadorEmail, estadoTurno, page));
+    }
+
 
     @PreAuthorize("hasRole('EMPLEADO')")
     @GetMapping("/de-sucursal/{sucursalId}/propios")
@@ -93,6 +106,19 @@ public class TurnoController {
 
         return ResponseEntity.ok().body(turnoService.listarTurnosPropiosPorSucursal(
                 sucursalId, empleadoEmail, estadoTurno));
+    }
+
+    /** Turnos asignados paginados: 10 por pagina. */
+    @PreAuthorize("hasRole('EMPLEADO')")
+    @GetMapping("/de-sucursal/{sucursalId}/propios/paginado")
+    public ResponseEntity<?> listarTurnosPropiosDeSucursalPaginados(
+            @PathVariable("sucursalId") Integer sucursalId,
+            @RequestParam EstadoTurno estadoTurno,
+            @RequestParam(name = "page", defaultValue = "0") String page,
+            @AuthenticationPrincipal String empleadoEmail) {
+
+        return ResponseEntity.ok().body(turnoService.listarTurnosPropiosPorSucursalPaginado(
+                sucursalId, empleadoEmail, estadoTurno, page));
     }
 
 
@@ -112,6 +138,17 @@ public class TurnoController {
     public ResponseEntity<?> listarTurnosPropios(@AuthenticationPrincipal String clienteEmail) {
 
         return ResponseEntity.ok().body(turnoService.listarTurnosPorCliente(clienteEmail));
+    }
+
+    /** Mis turnos paginados: 10 por pagina, conservando el orden actual. */
+    @PreAuthorize("hasRole('CLIENTE')")
+    @GetMapping("/propios/paginado")
+    public ResponseEntity<?> listarTurnosPropiosPaginados(
+            @AuthenticationPrincipal String clienteEmail,
+            @RequestParam(name = "page", defaultValue = "0") String page) {
+
+        return ResponseEntity.ok().body(
+                turnoService.listarTurnosPorClientePaginado(clienteEmail, page));
     }
 
 

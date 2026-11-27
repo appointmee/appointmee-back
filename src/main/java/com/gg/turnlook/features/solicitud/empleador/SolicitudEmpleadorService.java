@@ -1,7 +1,10 @@
 package com.gg.turnlook.features.solicitud.empleador;
 
+import com.gg.turnlook.common.dto.PaginaDTO;
+import com.gg.turnlook.common.dto.VistaPreviaDTO;
 import com.gg.turnlook.common.exception.BadRequestException;
 import com.gg.turnlook.common.exception.ConflictException;
+import com.gg.turnlook.common.util.PaginacionUtil;
 import com.gg.turnlook.common.exception.ForbiddenException;
 import com.gg.turnlook.common.exception.NotFoundException;
 import com.gg.turnlook.features.notificacion.NotificacionEventosService;
@@ -34,9 +37,10 @@ import org.springframework.transaction.annotation.Transactional;
 public class SolicitudEmpleadorService {
 
 
-    // Limite del listado propio (no administrativo, que ahora es paginado).
-    private static final int LIMITE_SOLICITUDES = 500;
-    private static final int TAMANO_DEFECTO = 10;
+    // El contenedor inicial trae solo las ultimas 3; el historial completo se
+    // navega en paginas de 10.
+    private static final int LIMITE_VISTA_PREVIA = 3;
+    private static final int TAMANO_DEFECTO = PaginacionUtil.TAMANO_PAGINA;
     private static final int MOTIVO_MINIMO = 20;
     private static final int MOTIVO_MAXIMO = 3000;
     private static final int DIRECCION_MAXIMA = 500;
@@ -102,11 +106,12 @@ public class SolicitudEmpleadorService {
 
         EstadoSolicitud filtro = parsearEstado(estado);
         int numeroPagina = parsearNumero(pagina, "page", 0);
-        int tamanoPagina = parsearNumero(size, "size", TAMANO_DEFECTO);
-        validarPaginacion(numeroPagina, tamanoPagina);
+        int tamanoSolicitado = parsearNumero(size, "size", TAMANO_DEFECTO);
+        validarPaginacion(numeroPagina, tamanoSolicitado);
 
+        // Tamano fijo de esta historia: solo la pagina es navegable por el cliente.
         Page<SolicitudEmpleadorMiniDTO> resultado = solicitudEmpleadorRepo.findMiniAdmin(
-                filtro, PageRequest.of(numeroPagina, tamanoPagina));
+                filtro, PageRequest.of(numeroPagina, PaginacionUtil.TAMANO_PAGINA));
 
         return new PaginaSolicitudesEmpleadorDTO(
                 resultado.getContent(),
@@ -118,10 +123,34 @@ public class SolicitudEmpleadorService {
 
 
     @Transactional(readOnly = true)
-    public List<SolicitudEmpleadorMiniDTO> listarSolicitudesPropias(String userEmail) {
+    public VistaPreviaDTO<SolicitudEmpleadorMiniDTO> listarSolicitudesPropias(
+            String userEmail) {
 
-        return solicitudEmpleadorRepo.findMiniByUsuarioEmail(userEmail,
-                PageRequest.of(0, LIMITE_SOLICITUDES));
+        Page<SolicitudEmpleadorMiniDTO> resultado = solicitudEmpleadorRepo
+                .findPageByUsuarioEmail(userEmail, PageRequest.of(0, LIMITE_VISTA_PREVIA));
+
+        return new VistaPreviaDTO<>(
+                resultado.getContent(),
+                resultado.getTotalElements(),
+                resultado.getTotalElements() > LIMITE_VISTA_PREVIA);
+    }
+
+    /** Historial completo de solicitudes enviadas: 10 por pagina. */
+    @Transactional(readOnly = true)
+    public PaginaDTO<SolicitudEmpleadorMiniDTO> listarSolicitudesPropiasPaginadas(
+            String userEmail, String pagina) {
+
+        Page<SolicitudEmpleadorMiniDTO> resultado = solicitudEmpleadorRepo
+                .findPageByUsuarioEmail(userEmail,
+                        PageRequest.of(PaginacionUtil.pagina(pagina),
+                                PaginacionUtil.TAMANO_PAGINA));
+
+        return new PaginaDTO<>(
+                resultado.getContent(),
+                resultado.getTotalElements(),
+                resultado.getTotalPages(),
+                resultado.getNumber(),
+                resultado.getSize());
     }
 
 

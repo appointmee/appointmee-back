@@ -7,6 +7,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Collection;
 import java.util.Optional;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -99,6 +100,25 @@ public interface TurnoRepository extends JpaRepository<Turno, Integer> {
             @Param("estadoTurno") EstadoTurno estadoTurno,
             Pageable pageable);
 
+    @Query(value = """
+                SELECT new com.gg.turnlook.features.turno.dto.TurnoMiniDTO(
+                    t.id, t.servicio.nombre, t.fechaHora, t.estado, r.puntuacion)
+                FROM Turno t
+                LEFT JOIN t.resenia r
+                WHERE t.servicio.sucursal.id = :sucursalId
+                    AND t.estado = :estadoTurno
+                ORDER BY t.fechaHora DESC, t.id DESC
+            """,
+            countQuery = """
+                SELECT COUNT(t) FROM Turno t
+                WHERE t.servicio.sucursal.id = :sucursalId
+                    AND t.estado = :estadoTurno
+            """)
+    Page<TurnoMiniDTO> findPageByServicioSucursalIdAndEstado(
+            @Param("sucursalId") Integer sucursalId,
+            @Param("estadoTurno") EstadoTurno estadoTurno,
+            Pageable pageable);
+
 
     // Consulta anterior a la optimización. Reemplazada por findMiniByClienteEmail.
     // List<Turno> findByClienteEmail(String clienteEmail);
@@ -112,6 +132,22 @@ public interface TurnoRepository extends JpaRepository<Turno, Integer> {
                 ORDER BY t.fechaHora DESC, t.id DESC
             """)
     List<TurnoMiniDTO> findMiniByClienteEmail(
+            @Param("clienteEmail") String clienteEmail,
+            Pageable pageable);
+
+    @Query(value = """
+                SELECT new com.gg.turnlook.features.turno.dto.TurnoMiniDTO(
+                    t.id, t.servicio.nombre, t.fechaHora, t.estado, r.puntuacion)
+                FROM Turno t
+                LEFT JOIN t.resenia r
+                WHERE t.cliente.email = :clienteEmail
+                ORDER BY t.fechaHora DESC, t.id DESC
+            """,
+            countQuery = """
+                SELECT COUNT(t) FROM Turno t
+                WHERE t.cliente.email = :clienteEmail
+            """)
+    Page<TurnoMiniDTO> findPageByClienteEmail(
             @Param("clienteEmail") String clienteEmail,
             Pageable pageable);
 
@@ -132,6 +168,28 @@ public interface TurnoRepository extends JpaRepository<Turno, Integer> {
                 ORDER BY t.fechaHora DESC, t.id DESC
             """)
     List<TurnoMiniDTO> findMiniByEmpleadoEmailAndServicioSucursalIdAndEstado(
+            @Param("empleadoEmail") String empleadoEmail,
+            @Param("sucursalId") Integer sucursalId,
+            @Param("estadoTurno") EstadoTurno estadoTurno,
+            Pageable pageable);
+
+    @Query(value = """
+                SELECT new com.gg.turnlook.features.turno.dto.TurnoMiniDTO(
+                    t.id, t.servicio.nombre, t.fechaHora, t.estado, r.puntuacion)
+                FROM Turno t
+                LEFT JOIN t.resenia r
+                WHERE t.empleado.email = :empleadoEmail
+                    AND t.servicio.sucursal.id = :sucursalId
+                    AND t.estado = :estadoTurno
+                ORDER BY t.fechaHora DESC, t.id DESC
+            """,
+            countQuery = """
+                SELECT COUNT(t) FROM Turno t
+                WHERE t.empleado.email = :empleadoEmail
+                    AND t.servicio.sucursal.id = :sucursalId
+                    AND t.estado = :estadoTurno
+            """)
+    Page<TurnoMiniDTO> findPageByEmpleadoEmailAndServicioSucursalIdAndEstado(
             @Param("empleadoEmail") String empleadoEmail,
             @Param("sucursalId") Integer sucursalId,
             @Param("estadoTurno") EstadoTurno estadoTurno,

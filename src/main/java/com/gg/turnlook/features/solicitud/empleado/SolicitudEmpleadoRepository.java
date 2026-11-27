@@ -5,6 +5,7 @@ import com.gg.turnlook.features.solicitud.empleado.dto.SolicitudEmpleadoMiniProp
 import com.gg.turnlook.features.solicitud.empleado.dto.SolicitudEmpleadoMiniSucursalDTO;
 import java.util.List;
 import java.util.Optional;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -49,6 +50,25 @@ public interface SolicitudEmpleadoRepository extends JpaRepository<SolicitudEmpl
                 ORDER BY s.fechaSolicitud DESC, s.id DESC
             """)
     List<SolicitudEmpleadoMiniPropiaDTO> findMiniByEmpleadoEmail(
+            @Param("empleadoEmail") String empleadoEmail,
+            Pageable pageable);
+
+    /// Listado recibido paginado: el conteo ignora las sucursales dadas de baja,
+    /// igual que la consulta de contenido.
+    @Query(value = """
+                SELECT new com.gg.turnlook.features.solicitud.empleado.dto.SolicitudEmpleadoMiniPropiaDTO(
+                    s.id, s.sucursal.nombre, s.fechaSolicitud)
+                FROM SolicitudEmpleado s
+                WHERE s.empleado.email = :empleadoEmail
+                    AND s.sucursal.activo = true
+                ORDER BY s.fechaSolicitud DESC, s.id DESC
+            """,
+            countQuery = """
+                SELECT COUNT(s) FROM SolicitudEmpleado s
+                WHERE s.empleado.email = :empleadoEmail
+                    AND s.sucursal.activo = true
+            """)
+    Page<SolicitudEmpleadoMiniPropiaDTO> findPageByEmpleadoEmail(
             @Param("empleadoEmail") String empleadoEmail,
             Pageable pageable);
 

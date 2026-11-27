@@ -45,6 +45,17 @@ public class SolicitudEmpleadoController {
                 solicitudEmpleadoService.listarSolicitudesRecibidas(userEmail));
     }
 
+    /** Historial completo: 10 solicitudes por pagina, solo las recibidas. */
+    @PreAuthorize("hasRole('CLIENTE')")
+    @GetMapping("/recibidas/paginado")
+    public ResponseEntity<?> listarSolicitudesRecibidasPaginadas(
+            @AuthenticationPrincipal String userEmail,
+            @RequestParam(name = "page", defaultValue = "0") String page) {
+
+        return ResponseEntity.ok().body(
+                solicitudEmpleadoService.listarSolicitudesRecibidasPaginadas(userEmail, page));
+    }
+
 
     @GetMapping("/{solicitudId}/detalles")
     public ResponseEntity<?> verDetallesSolicitud(

@@ -1,7 +1,9 @@
 package com.gg.turnlook.features.turno;
 
+import com.gg.turnlook.common.dto.PaginaDTO;
 import com.gg.turnlook.common.exception.BadRequestException;
 import com.gg.turnlook.common.exception.ConflictException;
+import com.gg.turnlook.common.util.PaginacionUtil;
 import com.gg.turnlook.common.exception.ForbiddenException;
 import com.gg.turnlook.common.exception.NotFoundException;
 import com.gg.turnlook.features.resenia.Resenia;
@@ -33,6 +35,7 @@ import java.time.LocalTime;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.stream.Collectors;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -45,10 +48,10 @@ import org.springframework.transaction.annotation.Transactional;
 public class TurnoService {
 
 
-    // Limites de los listados. Se mantiene la respuesta como List para no
-    // cambiar el contrato de la API, pero se evita traer historiales completos.
-    private static final int LIMITE_TURNOS_CLIENTE = 200;
-    private static final int LIMITE_TURNOS_SUCURSAL = 500;
+    // Los clientes del listado simple reciben solo la primera pagina; la
+    // navegacion completa usa los endpoints paginados.
+    private static final int LIMITE_TURNOS_CLIENTE = PaginacionUtil.TAMANO_PAGINA;
+    private static final int LIMITE_TURNOS_SUCURSAL = PaginacionUtil.TAMANO_PAGINA;
 
     // Ventana de reservas: dias hacia adelante y granularidad de los slots.
     private static final int DIAS_DISPONIBILIDAD = 21;
@@ -326,6 +329,21 @@ public class TurnoService {
                 estadoTurno, PageRequest.of(0, LIMITE_TURNOS_SUCURSAL));
     }
 
+    /** Historial de la sucursal: 10 turnos por pagina, filtro y total en SQL. */
+    public PaginaDTO<TurnoMiniDTO> listarTurnosPorSucursalPaginado(
+            Integer sucursalId, String empleadorEmail, EstadoTurno estadoTurno, String pagina) {
+
+        Sucursal sucursal = sucursalService.listarSucursalPorId(sucursalId);
+
+        if (!sucursalService.esEmpleadorAca(sucursal, empleadorEmail)) {
+            throw new ForbiddenException("No tenes permisos");
+        }
+
+        return pagina(turnoRepo.findPageByServicioSucursalIdAndEstado(
+                sucursal.getId(), estadoTurno,
+                PageRequest.of(PaginacionUtil.pagina(pagina), PaginacionUtil.TAMANO_PAGINA)));
+    }
+
 
     public List<TurnoMiniDTO> listarTurnosPropiosPorSucursal(
             Integer sucursalId, String empleadoEmail, EstadoTurno estadoTurno){
@@ -339,6 +357,21 @@ public class TurnoService {
         return turnoRepo.findMiniByEmpleadoEmailAndServicioSucursalIdAndEstado(
                 empleadoEmail, sucursal.getId(), estadoTurno,
                 PageRequest.of(0, LIMITE_TURNOS_SUCURSAL));
+    }
+
+    /** Turnos asignados al empleado: 10 por pagina con el mismo filtro. */
+    public PaginaDTO<TurnoMiniDTO> listarTurnosPropiosPorSucursalPaginado(
+            Integer sucursalId, String empleadoEmail, EstadoTurno estadoTurno, String pagina) {
+
+        Sucursal sucursal = sucursalService.listarSucursalPorId(sucursalId);
+
+        if (!sucursalService.enSucursal(empleadoEmail, sucursal)) {
+            throw new ForbiddenException("No tenes permisos");
+        }
+
+        return pagina(turnoRepo.findPageByEmpleadoEmailAndServicioSucursalIdAndEstado(
+                empleadoEmail, sucursal.getId(), estadoTurno,
+                PageRequest.of(PaginacionUtil.pagina(pagina), PaginacionUtil.TAMANO_PAGINA)));
     }
 
 
@@ -394,6 +427,23 @@ public class TurnoService {
 
         return turnoRepo.findMiniByClienteEmail(clienteEmail,
                 PageRequest.of(0, LIMITE_TURNOS_CLIENTE));
+    }
+
+    /** Mis turnos: 10 por pagina, orden actual y total en la base. */
+    public PaginaDTO<TurnoMiniDTO> listarTurnosPorClientePaginado(
+            String clienteEmail, String pagina) {
+
+        return pagina(turnoRepo.findPageByClienteEmail(clienteEmail,
+                PageRequest.of(PaginacionUtil.pagina(pagina), PaginacionUtil.TAMANO_PAGINA)));
+    }
+
+    private PaginaDTO<TurnoMiniDTO> pagina(Page<TurnoMiniDTO> resultado) {
+        return new PaginaDTO<>(
+                resultado.getContent(),
+                resultado.getTotalElements(),
+                resultado.getTotalPages(),
+                resultado.getNumber(),
+                resultado.getSize());
     }
 
 
