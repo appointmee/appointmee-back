@@ -23,11 +23,15 @@ public class SucursalController {
 
 
     private final SucursalService sucursalService;
+    private final SucursalDescubrimientoService descubrimientoService;
     private final ReseniaService reseniaService;
 
 
-    public SucursalController(SucursalService sucursalService, ReseniaService reseniaService) {
+    public SucursalController(SucursalService sucursalService,
+                              SucursalDescubrimientoService descubrimientoService,
+                              ReseniaService reseniaService) {
         this.sucursalService = sucursalService;
+        this.descubrimientoService = descubrimientoService;
         this.reseniaService = reseniaService;
     }
 
@@ -136,6 +140,36 @@ public class SucursalController {
             @RequestParam(required = false) String nombre) {
 
         return ResponseEntity.ok().body(sucursalService.filtrarListaSucursales(categoria, nombre));
+    }
+
+    /** Contrato nuevo: el listado general sin paginar conserva su respuesta
+     * de array para los clientes existentes. */
+    @GetMapping("/listar/paginado")
+    public ResponseEntity<?> listarSucursalesPaginadas(
+            @RequestParam(required = false) String categoria,
+            @RequestParam(required = false) String nombre,
+            @RequestParam(name = "page", required = false) String page,
+            @RequestParam(name = "size", required = false) String size) {
+
+        return ResponseEntity.ok().body(
+                descubrimientoService.listarPaginado(nombre, categoria, page, size));
+    }
+
+    /** Secciones del Home. Las dos secciones personales llegan vacias para
+     * usuarios anonimos o sin historial. */
+    @GetMapping("/recomendaciones")
+    public ResponseEntity<?> recomendaciones(@AuthenticationPrincipal String email) {
+
+        return ResponseEntity.ok().body(descubrimientoService.obtenerRecomendaciones(email));
+    }
+
+    @PreAuthorize("isAuthenticated()")
+    @PostMapping("/{sucursalId}/vistas")
+    public ResponseEntity<?> registrarVisita(@PathVariable("sucursalId") Integer sucursalId,
+                                             @AuthenticationPrincipal String email) {
+
+        descubrimientoService.registrarVisita(sucursalId, email);
+        return ResponseEntity.ok().body("Visita registrada");
     }
 
 
