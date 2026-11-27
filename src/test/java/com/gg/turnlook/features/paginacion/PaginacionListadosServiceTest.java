@@ -295,16 +295,16 @@ class PaginacionListadosServiceTest {
                 mock(com.gg.turnlook.features.turno.TurnoBajaService.class));
 
         when(repo.buscarMiniAdminPagina(
-                "Ana", "Gomez", true, null, false, null, PageRequest.of(1, 10)))
+                "An", "Go", true, null, false, null, PageRequest.of(1, 10)))
                 .thenReturn(new PageImpl<>(List.of(), PageRequest.of(1, 10), 21));
 
         PaginaDTO<?> pagina = service.listarUsuariosPaginados(
-                "Ana", "Gomez", true, null, null, "1");
+                " An ", " Go ", true, null, null, "1");
         assertEquals(21, pagina.getTotalElements());
         assertEquals(3, pagina.getTotalPages());
         assertEquals(10, pagina.getSize());
         verify(repo).buscarMiniAdminPagina(
-                "Ana", "Gomez", true, null, false, null, PageRequest.of(1, 10));
+                "An", "Go", true, null, false, null, PageRequest.of(1, 10));
     }
 
     @Test
@@ -318,16 +318,16 @@ class PaginacionListadosServiceTest {
                 mock(com.gg.turnlook.features.turno.TurnoBajaService.class));
 
         when(repo.buscarMiniAdminPagina(
-                "Ana", "Gomez", true, "ANA@", true, ERol.CLIENTE, PageRequest.of(0, 10)))
+                "An", "Go", true, "ANA@", true, ERol.CLIENTE, PageRequest.of(0, 10)))
                 .thenReturn(new PageImpl<>(List.of(), PageRequest.of(0, 10), 11));
 
         PaginaDTO<?> pagina = service.listarUsuariosPaginados(
-                " Ana ", " Gomez ", true, " ANA@ ", "cliente", "0");
+                " An ", " Go ", true, " ANA@ ", "cliente", "0");
 
         assertEquals(11, pagina.getTotalElements());
         assertEquals(2, pagina.getTotalPages());
         verify(repo).buscarMiniAdminPagina(
-                "Ana", "Gomez", true, "ANA@", true, ERol.CLIENTE, PageRequest.of(0, 10));
+                "An", "Go", true, "ANA@", true, ERol.CLIENTE, PageRequest.of(0, 10));
     }
 
     @Test

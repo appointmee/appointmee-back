@@ -69,16 +69,18 @@ public interface UsuarioRepository extends JpaRepository<Usuario,Integer> {
 
 
     // Listado administrativo: los filtros se resuelven en la base y solo se
-    // proyectan los campos necesarios para mapear UsuarioMiniAdminDTO. El rol
-    // se comprueba con EXISTS para no duplicar filas de usuarios con varios roles.
+    // proyectan los campos necesarios para mapear UsuarioMiniAdminDTO. Nombre,
+    // apellido y email admiten coincidencia parcial sin distinguir mayúsculas;
+    // el rol se comprueba con EXISTS para no duplicar filas de usuarios con
+    // varios roles.
     @Query("""
                 SELECT u.id, u.nombre, u.apellido, u.activo, foto.url
                 FROM Usuario u
                 LEFT JOIN u.fotoPerfil foto
                 WHERE (CAST(:nombre AS string) IS NULL
-                        OR LOWER(u.nombre) = LOWER(CAST(:nombre AS string)))
+                        OR LOCATE(LOWER(CAST(:nombre AS string)), LOWER(u.nombre)) > 0)
                     AND (CAST(:apellido AS string) IS NULL
-                        OR LOWER(u.apellido) = LOWER(CAST(:apellido AS string)))
+                        OR LOCATE(LOWER(CAST(:apellido AS string)), LOWER(u.apellido)) > 0)
                     AND (CAST(:email AS string) IS NULL
                         OR LOCATE(LOWER(CAST(:email AS string)), LOWER(u.email)) > 0)
                     AND (CAST(:activo AS boolean) IS NULL OR u.activo = :activo)
@@ -101,9 +103,9 @@ public interface UsuarioRepository extends JpaRepository<Usuario,Integer> {
                 FROM Usuario u
                 LEFT JOIN u.fotoPerfil foto
                 WHERE (CAST(:nombre AS string) IS NULL
-                        OR LOWER(u.nombre) = LOWER(CAST(:nombre AS string)))
+                        OR LOCATE(LOWER(CAST(:nombre AS string)), LOWER(u.nombre)) > 0)
                     AND (CAST(:apellido AS string) IS NULL
-                        OR LOWER(u.apellido) = LOWER(CAST(:apellido AS string)))
+                        OR LOCATE(LOWER(CAST(:apellido AS string)), LOWER(u.apellido)) > 0)
                     AND (CAST(:email AS string) IS NULL
                         OR LOCATE(LOWER(CAST(:email AS string)), LOWER(u.email)) > 0)
                     AND (CAST(:activo AS boolean) IS NULL OR u.activo = :activo)
@@ -114,9 +116,9 @@ public interface UsuarioRepository extends JpaRepository<Usuario,Integer> {
             countQuery = """
                 SELECT COUNT(u) FROM Usuario u
                 WHERE (CAST(:nombre AS string) IS NULL
-                        OR LOWER(u.nombre) = LOWER(CAST(:nombre AS string)))
+                        OR LOCATE(LOWER(CAST(:nombre AS string)), LOWER(u.nombre)) > 0)
                     AND (CAST(:apellido AS string) IS NULL
-                        OR LOWER(u.apellido) = LOWER(CAST(:apellido AS string)))
+                        OR LOCATE(LOWER(CAST(:apellido AS string)), LOWER(u.apellido)) > 0)
                     AND (CAST(:email AS string) IS NULL
                         OR LOCATE(LOWER(CAST(:email AS string)), LOWER(u.email)) > 0)
                     AND (CAST(:activo AS boolean) IS NULL OR u.activo = :activo)

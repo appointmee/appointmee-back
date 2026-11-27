@@ -55,6 +55,24 @@ class UsuarioRepositoryAdminTest {
     }
 
     @Test
+    void buscaNombreYApellidoPorCoincidenciaParcialSinDistinguirMayusculas() {
+        Usuario giovanni = guardar("Giovanni", "Marcos", "giovanni@example.com", true);
+        Usuario giovanna = guardar("Giovanna", "María", "giovanna@example.com", true);
+        Usuario gio = guardar("Gio", "Mariano", "gio@example.com", true);
+        Usuario giovv = guardar("giovv", "Marta", "giovv@example.com", true);
+        guardar("Ana", "García", "ana@example.com", true);
+        guardar("Mario", "Pérez", "mario@example.com", true);
+
+        var resultados = repository.buscarMiniAdmin(
+                "gIo", "mAr", null, null, false, null, PageRequest.of(0, 50));
+
+        assertEquals(Set.of(giovanni.getId(), giovanna.getId(), gio.getId(), giovv.getId()),
+                resultados.stream()
+                        .map(fila -> (Integer) fila[0])
+                        .collect(Collectors.toSet()));
+    }
+
+    @Test
     void filtraPorEmailYRolSinDuplicarUsuariosConVariosRoles() {
         Rol cliente = rolRepo.saveAndFlush(new Rol(null, ERol.CLIENTE, new HashSet<>()));
         Rol empleado = rolRepo.saveAndFlush(new Rol(null, ERol.EMPLEADO, new HashSet<>()));
@@ -79,8 +97,10 @@ class UsuarioRepositoryAdminTest {
     }
 
     @Test
-    void combinaNombreApellidoEmailEstadoYRol() {
+    void combinaNombreApellidoEmailEstadoYRolConCoincidenciasParciales() {
         Rol cliente = rolRepo.saveAndFlush(new Rol(null, ERol.CLIENTE, new HashSet<>()));
+        Rol empleado = rolRepo.saveAndFlush(new Rol(null, ERol.EMPLEADO, new HashSet<>()));
+
         Usuario esperado = guardar("Lucía", "García", "lucia@example.com", true);
         esperado.getRoles().add(cliente);
         repository.saveAndFlush(esperado);
@@ -89,8 +109,16 @@ class UsuarioRepositoryAdminTest {
         inactivo.getRoles().add(cliente);
         repository.saveAndFlush(inactivo);
 
+        Usuario otroRol = guardar("Lucía", "García", "lucia-empleado@example.com", true);
+        otroRol.getRoles().add(empleado);
+        repository.saveAndFlush(otroRol);
+
+        Usuario otroNombre = guardar("Lucas", "García", "lucas@example.com", true);
+        otroNombre.getRoles().add(cliente);
+        repository.saveAndFlush(otroNombre);
+
         var resultados = repository.buscarMiniAdmin(
-                "lUcÍa", "gArCía", true, "LUCIA@", true, ERol.CLIENTE,
+                "ucÍ", "arC", true, "LUCIA@", true, ERol.CLIENTE,
                 PageRequest.of(0, 50));
 
         assertEquals(1, resultados.size());

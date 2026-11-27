@@ -81,7 +81,7 @@ class PaginacionListadosRepositoryTest {
         Page<Object[]> segunda = usuarioRepo.buscarMiniAdminPagina(
                 null, null, true, null, false, null, PageRequest.of(1, 10));
         Page<Object[]> nombre = usuarioRepo.buscarMiniAdminPagina(
-                "sofia", "lopez", true, null, false, null, PageRequest.of(0, 10));
+                "ofi", "pez", true, null, false, null, PageRequest.of(0, 10));
 
         assertEquals(10, activos.getContent().size());
         assertEquals(2, segunda.getContent().size());
