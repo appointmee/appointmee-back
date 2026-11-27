@@ -1,5 +1,9 @@
 package com.gg.turnlook.features.pago;
 
+import com.gg.turnlook.features.pago.comandos.PayoutCommand;
+import com.gg.turnlook.features.pago.comandos.RefundCommand;
+import com.gg.turnlook.features.pago.records.PayoutResult;
+
 import java.math.BigDecimal;
 import java.util.UUID;
 

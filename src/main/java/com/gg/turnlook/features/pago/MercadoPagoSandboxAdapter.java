@@ -1,5 +1,9 @@
 package com.gg.turnlook.features.pago;
 
+import com.gg.turnlook.features.pago.comandos.CrearCobroCommand;
+import com.gg.turnlook.features.pago.records.CobroCreado;
+import com.gg.turnlook.features.pago.records.PagoProveedor;
+
 import com.gg.turnlook.features.pago.api.MercadoPagoApi;
 import com.gg.turnlook.features.pago.api.PagoApiResponse;
 import com.gg.turnlook.features.pago.api.PreferenciaRequest;

@@ -5,8 +5,8 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import com.gg.turnlook.features.pago.PayoutCommand;
-import com.gg.turnlook.features.pago.PayoutResult;
+import com.gg.turnlook.features.pago.comandos.PayoutCommand;
+import com.gg.turnlook.features.pago.records.PayoutResult;
 import com.gg.turnlook.features.pago.PayoutStatus;
 import com.gg.turnlook.features.servicio.Servicio;
 import com.gg.turnlook.features.servicio.ServicioRepository;
