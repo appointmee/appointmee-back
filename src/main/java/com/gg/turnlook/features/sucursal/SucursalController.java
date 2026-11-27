@@ -155,15 +155,18 @@ public class SucursalController {
                 descubrimientoService.listarPaginado(nombre, categoria, page, size));
     }
 
-    /** Listado administrativo: filtro por nombre/categoria/id en la base. */
+    /** Listado administrativo: filtros por nombre, categoria y busqueda libre
+     * (nombre/categoria/id) resueltos en la base. */
     @PreAuthorize("hasRole('ADMINISTRADOR')")
     @GetMapping("/listar/paginado/admin")
     public ResponseEntity<?> listarSucursalesPaginadasAdmin(
             @RequestParam(required = false) String q,
+            @RequestParam(required = false) String nombre,
+            @RequestParam(required = false) String categoria,
             @RequestParam(name = "page", defaultValue = "0") String page) {
 
         return ResponseEntity.ok().body(
-                descubrimientoService.listarPaginadoAdmin(q, page));
+                descubrimientoService.listarPaginadoAdmin(q, nombre, categoria, page));
     }
 
     /** Secciones del Home. Las dos secciones personales llegan vacias para

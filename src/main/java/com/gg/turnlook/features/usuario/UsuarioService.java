@@ -5,6 +5,7 @@ import com.gg.turnlook.common.util.DiasSemanaUtil;
 import com.gg.turnlook.common.util.PaginacionUtil;
 
 import com.gg.turnlook.auth.dto.LoginDTO;
+import com.gg.turnlook.common.exception.BadRequestException;
 import com.gg.turnlook.common.exception.ConflictException;
 import com.gg.turnlook.common.exception.RegistroPendienteVerificacionException;
 import com.gg.turnlook.common.exception.ForbiddenException;
@@ -28,6 +29,7 @@ import com.gg.turnlook.features.usuario.rol.ERol;
 import com.gg.turnlook.features.usuario.rol.Rol;
 import com.gg.turnlook.features.usuario.rol.RolService;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -211,30 +213,28 @@ public class UsuarioService {
     //             .toList();
     // }
     public List<UsuarioMiniAdminDTO> listarUsuarios() {
-        return mapearMiniAdmin(usRepo.buscarMiniAdmin(null, null, null,
-                PageRequest.of(0, LIMITE_USUARIOS_ADMIN)));
+        return filtrarListaUsuarios(null, null, null, null, null);
     }
 
 
-    // Consulta anterior a la optimización. Reemplazada por buscarMiniAdmin.
-    // public List<UsuarioMiniAdminDTO> filtrarListaUsuarios(String nombre, String apellido, Boolean activo) {
-    //     return listarUsuarios().stream()
-    //             .filter(u -> nombre == null || u.getNombre().equalsIgnoreCase(nombre))
-    //             .filter(u -> apellido == null || u.getApellido().equalsIgnoreCase(apellido))
-    //             .filter(u -> activo == null || u.isEstado() == activo)
-    //             .toList();
-    // }
-    public List<UsuarioMiniAdminDTO> filtrarListaUsuarios(String nombre, String apellido, Boolean activo) {
-        return mapearMiniAdmin(usRepo.buscarMiniAdmin(nombre, apellido, activo,
+    /** Consulta administrativa simple: devuelve solo la primera página. */
+    public List<UsuarioMiniAdminDTO> filtrarListaUsuarios(String nombre, String apellido,
+                                                          Boolean activo, String email, String rol) {
+        ERol filtroRol = parsearRol(rol);
+        return mapearMiniAdmin(usRepo.buscarMiniAdmin(
+                texto(nombre), texto(apellido), activo, texto(email),
+                filtroRol != null, filtroRol,
                 PageRequest.of(0, LIMITE_USUARIOS_ADMIN)));
     }
 
     /** Listado administrativo completo: filtros, orden y conteo en la base. */
     public PaginaDTO<UsuarioMiniAdminDTO> listarUsuariosPaginados(
-            String nombre, String apellido, Boolean activo, String pagina) {
+            String nombre, String apellido, Boolean activo, String email, String rol, String pagina) {
 
+        ERol filtroRol = parsearRol(rol);
         Page<Object[]> resultado = usRepo.buscarMiniAdminPagina(
-                nombre, apellido, activo,
+                texto(nombre), texto(apellido), activo, texto(email),
+                filtroRol != null, filtroRol,
                 PageRequest.of(PaginacionUtil.pagina(pagina), PaginacionUtil.TAMANO_PAGINA));
 
         return new PaginaDTO<>(
@@ -243,6 +243,23 @@ public class UsuarioService {
                 resultado.getTotalPages(),
                 resultado.getNumber(),
                 resultado.getSize());
+    }
+
+    /** Los filtros de texto vacíos se tratan como no enviados. */
+    private static String texto(String valor) {
+        return valor == null || valor.isBlank() ? null : valor.trim();
+    }
+
+    private static ERol parsearRol(String rol) {
+        String valor = texto(rol);
+        if (valor == null) {
+            return null;
+        }
+        try {
+            return ERol.valueOf(valor.toUpperCase(Locale.ROOT));
+        } catch (IllegalArgumentException e) {
+            throw new BadRequestException("Rol inválido");
+        }
     }
 
     private List<UsuarioMiniAdminDTO> mapearMiniAdmin(List<Object[]> filas) {

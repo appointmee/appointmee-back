@@ -104,10 +104,12 @@ public class UsuarioController {
     public ResponseEntity<?> filtrarListaUsuarios(
             @RequestParam(required = false) String nombre,
             @RequestParam(required = false) String apellido,
-            @RequestParam(required = false) Boolean activo) {
+            @RequestParam(required = false) Boolean activo,
+            @RequestParam(required = false) String email,
+            @RequestParam(required = false) String rol) {
 
         return ResponseEntity.ok().body(usuarioService.filtrarListaUsuarios(
-                nombre, apellido, activo));
+                nombre, apellido, activo, email, rol));
     }
 
     /** Paginacion real: 10 usuarios por pagina, con los mismos filtros. */
@@ -117,10 +119,12 @@ public class UsuarioController {
             @RequestParam(required = false) String nombre,
             @RequestParam(required = false) String apellido,
             @RequestParam(required = false) Boolean activo,
+            @RequestParam(required = false) String email,
+            @RequestParam(required = false) String rol,
             @RequestParam(name = "page", defaultValue = "0") String page) {
 
         return ResponseEntity.ok().body(usuarioService.listarUsuariosPaginados(
-                nombre, apellido, activo, page));
+                nombre, apellido, activo, email, rol, page));
     }
 
 

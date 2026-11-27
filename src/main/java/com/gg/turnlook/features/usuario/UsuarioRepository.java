@@ -69,7 +69,8 @@ public interface UsuarioRepository extends JpaRepository<Usuario,Integer> {
 
 
     // Listado administrativo: los filtros se resuelven en la base y solo se
-    // proyectan los campos necesarios para mapear UsuarioMiniAdminDTO.
+    // proyectan los campos necesarios para mapear UsuarioMiniAdminDTO. El rol
+    // se comprueba con EXISTS para no duplicar filas de usuarios con varios roles.
     @Query("""
                 SELECT u.id, u.nombre, u.apellido, u.activo, foto.url
                 FROM Usuario u
@@ -78,13 +79,20 @@ public interface UsuarioRepository extends JpaRepository<Usuario,Integer> {
                         OR LOWER(u.nombre) = LOWER(CAST(:nombre AS string)))
                     AND (CAST(:apellido AS string) IS NULL
                         OR LOWER(u.apellido) = LOWER(CAST(:apellido AS string)))
+                    AND (CAST(:email AS string) IS NULL
+                        OR LOCATE(LOWER(CAST(:email AS string)), LOWER(u.email)) > 0)
                     AND (CAST(:activo AS boolean) IS NULL OR u.activo = :activo)
+                    AND (:filtrarRol = false
+                        OR EXISTS (SELECT 1 FROM u.roles r WHERE r.rol = :rol))
                 ORDER BY u.id
             """)
     List<Object[]> buscarMiniAdmin(
             @Param("nombre") String nombre,
             @Param("apellido") String apellido,
             @Param("activo") Boolean activo,
+            @Param("email") String email,
+            @Param("filtrarRol") boolean filtrarRol,
+            @Param("rol") ERol rol,
             Pageable pageable);
 
     /** Variante paginada: cuenta con los mismos filtros que la consulta. */
@@ -96,7 +104,11 @@ public interface UsuarioRepository extends JpaRepository<Usuario,Integer> {
                         OR LOWER(u.nombre) = LOWER(CAST(:nombre AS string)))
                     AND (CAST(:apellido AS string) IS NULL
                         OR LOWER(u.apellido) = LOWER(CAST(:apellido AS string)))
+                    AND (CAST(:email AS string) IS NULL
+                        OR LOCATE(LOWER(CAST(:email AS string)), LOWER(u.email)) > 0)
                     AND (CAST(:activo AS boolean) IS NULL OR u.activo = :activo)
+                    AND (:filtrarRol = false
+                        OR EXISTS (SELECT 1 FROM u.roles r WHERE r.rol = :rol))
                 ORDER BY u.id
             """,
             countQuery = """
@@ -105,12 +117,19 @@ public interface UsuarioRepository extends JpaRepository<Usuario,Integer> {
                         OR LOWER(u.nombre) = LOWER(CAST(:nombre AS string)))
                     AND (CAST(:apellido AS string) IS NULL
                         OR LOWER(u.apellido) = LOWER(CAST(:apellido AS string)))
+                    AND (CAST(:email AS string) IS NULL
+                        OR LOCATE(LOWER(CAST(:email AS string)), LOWER(u.email)) > 0)
                     AND (CAST(:activo AS boolean) IS NULL OR u.activo = :activo)
+                    AND (:filtrarRol = false
+                        OR EXISTS (SELECT 1 FROM u.roles r WHERE r.rol = :rol))
             """)
     Page<Object[]> buscarMiniAdminPagina(
             @Param("nombre") String nombre,
             @Param("apellido") String apellido,
             @Param("activo") Boolean activo,
+            @Param("email") String email,
+            @Param("filtrarRol") boolean filtrarRol,
+            @Param("rol") ERol rol,
             Pageable pageable);
 
 }

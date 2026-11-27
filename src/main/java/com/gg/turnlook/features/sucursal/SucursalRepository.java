@@ -229,9 +229,19 @@ public interface SucursalRepository extends JpaRepository<Sucursal, Integer> {
     /** Busqueda libre del listado administrativo: nombre, categoria o id.
      * Mantiene el mismo ranking 50/50 y resuelve filtro y limite en la base. */
     default List<Integer> findIdsOperativasParaAdmin(String termino, Pageable pageable) {
-        String filtro = termino == null || termino.isBlank() ? null : termino.trim();
+        return findIdsOperativasParaAdmin(termino, null, null, pageable);
+    }
+
+    /** Filtros administrativos combinables: la busqueda libre (q) conserva su
+     * coincidencia por nombre/categoria/id; nombre y categoria se exigen a la vez. */
+    default List<Integer> findIdsOperativasParaAdmin(String termino, String nombre,
+                                                     String categoria, Pageable pageable) {
+        String filtroTermino = termino == null || termino.isBlank() ? null : termino.trim();
+        String filtroNombre = nombre == null || nombre.isBlank() ? null : nombre.trim();
         return findIdsOperativasAdminFiltrado(
-                filtro != null, normalizarBusqueda(filtro), filtro, pageable);
+                filtroTermino != null, normalizarBusqueda(filtroTermino), filtroTermino,
+                filtroNombre != null, normalizarBusqueda(filtroNombre),
+                categoria, categoria != null, pageable);
     }
 
     @Query(value = """
@@ -248,6 +258,15 @@ public interface SucursalRepository extends JpaRepository<Sucursal, Integer> {
                            WHERE c.id = s.categoria_id
                              AND POSITION(:terminoNormalizado
                                           IN LOWER(CAST(c.categoria AS VARCHAR))) > 0
+                       ))
+                  AND (:filtrarNombre = false
+                       OR POSITION(:nombreNormalizado
+                                   IN REPLACE(LOWER(s.nombre), ' ', '')) > 0)
+                  AND (:filtrarCategoria = false
+                       OR EXISTS (
+                           SELECT 1 FROM categorias c
+                           WHERE c.id = s.categoria_id
+                             AND c.categoria = :categoria
                        ))
                   AND EXISTS (
                       SELECT 1 FROM servicios sv
@@ -293,13 +312,24 @@ public interface SucursalRepository extends JpaRepository<Sucursal, Integer> {
             @Param("filtrarTermino") boolean filtrarTermino,
             @Param("terminoNormalizado") String terminoNormalizado,
             @Param("terminoOriginal") String terminoOriginal,
+            @Param("filtrarNombre") boolean filtrarNombre,
+            @Param("nombreNormalizado") String nombreNormalizado,
+            @Param("categoria") String categoria,
+            @Param("filtrarCategoria") boolean filtrarCategoria,
             Pageable pageable);
 
-    /** Total con el mismo filtro libre que la consulta de contenido. */
+    /** Total con los mismos filtros que la consulta de contenido. */
     default long contarOperativasParaAdmin(String termino) {
-        String filtro = termino == null || termino.isBlank() ? null : termino.trim();
+        return contarOperativasParaAdmin(termino, null, null);
+    }
+
+    default long contarOperativasParaAdmin(String termino, String nombre, ECategoria categoria) {
+        String filtroTermino = termino == null || termino.isBlank() ? null : termino.trim();
+        String filtroNombre = nombre == null || nombre.isBlank() ? null : nombre.trim();
         return contarOperativasAdminFiltrado(
-                filtro != null, normalizarBusqueda(filtro), filtro);
+                filtroTermino != null, normalizarBusqueda(filtroTermino), filtroTermino,
+                filtroNombre != null, normalizarBusqueda(filtroNombre),
+                categoria);
     }
 
     @Query("""
@@ -311,6 +341,10 @@ public interface SucursalRepository extends JpaRepository<Sucursal, Integer> {
                    OR STR(s.id) = :terminoOriginal
                    OR LOCATE(:terminoNormalizado,
                              LOWER(CAST(s.categoria.categoria AS string))) > 0)
+              AND (:filtrarNombre = false
+                   OR LOCATE(:nombreNormalizado,
+                             REPLACE(LOWER(s.nombre), ' ', '')) > 0)
+              AND (:categoria IS NULL OR s.categoria.categoria = :categoria)
               AND EXISTS (
                   SELECT 1 FROM Servicio sv
                   WHERE sv.sucursal = s AND sv.activo = true
@@ -322,7 +356,10 @@ public interface SucursalRepository extends JpaRepository<Sucursal, Integer> {
     long contarOperativasAdminFiltrado(
             @Param("filtrarTermino") boolean filtrarTermino,
             @Param("terminoNormalizado") String terminoNormalizado,
-            @Param("terminoOriginal") String terminoOriginal);
+            @Param("terminoOriginal") String terminoOriginal,
+            @Param("filtrarNombre") boolean filtrarNombre,
+            @Param("nombreNormalizado") String nombreNormalizado,
+            @Param("categoria") ECategoria categoria);
 
     /** Carga en una sola query las entidades de la pagina con sus relaciones
      * usadas por SucursalMiniDTO. El orden lo aplica el servicio segun la lista

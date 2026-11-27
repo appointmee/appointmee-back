@@ -211,14 +211,26 @@ public class SucursalDescubrimientoService {
                 resultado.getSize());
     }
 
-    /** Listado administrativo: busqueda libre en la base, 10 por pagina. */
+    /** Listado administrativo: filtros combinables resueltos en la base. */
     @Transactional(readOnly = true)
     public PaginaSucursalesDTO listarPaginadoAdmin(String termino, String page) {
+        return listarPaginadoAdmin(termino, null, null, page);
+    }
+
+    /** mantiene la busqueda libre por nombre/categoria/id y agrega filtros
+     * explicitos por nombre y categoria, que se combinan entre si. */
+    @Transactional(readOnly = true)
+    public PaginaSucursalesDTO listarPaginadoAdmin(String termino, String nombre,
+                                                   String categoria, String page) {
+        ECategoria filtroCategoria = parsearCategoria(categoria);
+        String filtroNombre = nombre == null || nombre.isBlank() ? null : nombre.trim();
         PageRequest pagina = PageRequest.of(
                 PaginacionUtil.pagina(page), PaginacionUtil.TAMANO_PAGINA);
 
-        List<Integer> ids = sucRepo.findIdsOperativasParaAdmin(termino, pagina);
-        long total = sucRepo.contarOperativasParaAdmin(termino);
+        List<Integer> ids = sucRepo.findIdsOperativasParaAdmin(
+                termino, filtroNombre,
+                filtroCategoria == null ? null : filtroCategoria.name(), pagina);
+        long total = sucRepo.contarOperativasParaAdmin(termino, filtroNombre, filtroCategoria);
 
         return new PaginaSucursalesDTO(
                 mapearEnOrdenDeIds(ids), total,
