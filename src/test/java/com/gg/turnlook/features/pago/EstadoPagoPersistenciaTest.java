@@ -1,5 +1,9 @@
 package com.gg.turnlook.features.pago;
 
+import com.gg.turnlook.features.turno.EstadoTurno;
+import com.gg.turnlook.features.turno.Turno;
+import com.gg.turnlook.features.turno.TurnoRepository;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import com.gg.turnlook.features.turno.EstadoTurno;
